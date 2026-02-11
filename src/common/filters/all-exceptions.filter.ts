@@ -11,6 +11,7 @@ import { Request, Response } from 'express';
 import { PrismaClientKnownRequestError } from '@root/prisma/generated/internal/prismaNamespace.js';
 import { ZodValidationException, ZodSerializationException } from 'nestjs-zod';
 import { ZodError } from 'zod/v4';
+import { ThrottlerException } from '@nestjs/throttler';
 
 /**
  * @description: 全局异常过滤器，捕获所有未处理的异常并返回统一格式的错误响应
@@ -58,7 +59,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
         if (exception instanceof ZodValidationException) {
             const zodError = exception.getZodError() as ZodError;
             return {
-                message: 'Bad request',
+                message: 'Bad Request',
                 code: 'VALIDATION_FAILED',
                 statusCode: HttpStatus.BAD_REQUEST,
                 details: zodError.issues.map((issue) => ({
@@ -72,9 +73,17 @@ export class AllExceptionsFilter implements ExceptionFilter {
         // 处理响应序列化异常
         if (exception instanceof ZodSerializationException) {
             return {
-                message: 'Internal server error',
+                message: 'Internal Server Error',
                 code: 'SERIALIZATION_ERROR',
                 statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+            };
+        }
+
+        if (exception instanceof ThrottlerException) {
+            return {
+                message: exception.message,
+                code: 'TOO_MANY_REQUESTS',
+                statusCode: HttpStatus.TOO_MANY_REQUESTS,
             };
         }
 
@@ -96,7 +105,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
         // 处理未知异常
         return {
-            message: (exception as any).message ?? 'Unknown internal server error',
+            message: (exception as any).message ?? 'Unknown Internal Server Error',
             code: 'INTERNAL_SERVER_ERROR',
             statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
         };

@@ -5,9 +5,43 @@ import { AppModule } from './app.module.js';
 import figlet from 'figlet';
 import { atlas } from 'gradient-string';
 
+import compression from 'compression';
+import express from 'express';
+
 async function bootstrap() {
     const app = await NestFactory.create(AppModule);
     const logger = new Logger('Bootstrap');
+
+    app.enableCors({
+        origin: (origin: string, callback: any) => {
+            const allowedOrigins =
+                process.env.ALLOWED_ORIGINS_PROD?.split(',').map((o) => o.trim()) || [];
+
+            if (
+                process.env.NODE_ENV === 'development' &&
+                typeof process.env.ALLOWED_ORIGINS_DEV === 'string'
+            ) {
+                allowedOrigins.push(
+                    ...process.env.ALLOWED_ORIGINS_DEV.split(',').map((o) => o.trim())
+                );
+            }
+
+            if (!origin || allowedOrigins.includes(origin)) {
+                callback(null, true);
+            } else {
+                callback(new Error('Not allowed by CORS'));
+            }
+        },
+        methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+        credentials: true,
+        maxAge: 86400,
+    });
+
+    app.use(express.json({ limit: '10mb' }));
+    app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+
+    app.use(compression({ threshold: 1024 }));
+
     const port = parseInt(process.env.PORT ?? '3000', 10);
     await app.listen(port).catch((err) => {
         if (err.code === 'EADDRINUSE') {
@@ -29,7 +63,9 @@ async function bootstrap() {
         }
         process.exit(1);
     });
+
     logger.log(`✅ 服务已启动于: http://localhost:${port}\n`);
+
     const startupBanner = await figlet.text('NestJS-Demo-Basic', {
         font: 'Slant',
         horizontalLayout: 'fitted',
