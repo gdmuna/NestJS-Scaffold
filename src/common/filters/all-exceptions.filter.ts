@@ -1,17 +1,15 @@
 import { BussinessException } from '@/common/exceptions/business.exception.js';
-import {
-    ArgumentsHost,
-    Catch,
-    ExceptionFilter,
-    HttpException,
-    HttpStatus,
-    Logger,
-} from '@nestjs/common';
-import { Request, Response } from 'express';
+import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus } from '@nestjs/common';
+import { Request as originRequest, Response } from 'express';
 import { PrismaClientKnownRequestError } from '@root/prisma/generated/internal/prismaNamespace.js';
 import { ZodValidationException, ZodSerializationException } from 'nestjs-zod';
 import { ZodError } from 'zod/v4';
 import { ThrottlerException } from '@nestjs/throttler';
+import { Logger } from '@nestjs/common';
+
+interface Request extends originRequest {
+    user?: any;
+}
 
 /**
  * @description: 全局异常过滤器，捕获所有未处理的异常并返回统一格式的错误响应
@@ -27,20 +25,50 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
         const { message, code, statusCode, details } = this.parseException(exception);
 
-        this.logger.error(
-            `[${request.method}] ${request.url} - ${code} - ${statusCode} - ${message}`,
-            exception instanceof Error ? exception.stack : undefined
-        );
+        const logContext = {
+            error: {
+                type: exception?.constructor?.name ?? 'Unknown',
+                code,
+                message,
+                status: statusCode,
+            },
+            ...(request.user && {
+                user: {
+                    id: request.user.id,
+                    username: request.user.username,
+                },
+            }),
+            details,
+        };
 
-        const errorResponse = {
+        if (statusCode >= 500) {
+            this.logger.error(
+                {
+                    ...logContext,
+                    stack: exception instanceof Error ? exception.stack : undefined,
+                },
+                `Internal error: ${message}`
+            );
+        } else if (statusCode === 429) {
+            // 限流 - warn 级别
+            this.logger.warn(logContext, `Rate limit exceeded: ${message}`);
+        } else if (statusCode >= 400) {
+            // 其他客户端错误 - info 级别
+            this.logger.log(logContext, `Client error: ${message}`);
+        } else {
+            // 其他情况 - fatal 级别
+            this.logger.fatal(logContext, `Unexpected exception: ${message}`);
+        }
+
+        const exceptionRes = {
             success: false,
             code,
             message,
+            url: request.url,
             timestamp: new Date().toISOString(),
-            path: request.url,
             details,
         };
-        response.status(statusCode).json(errorResponse);
+        response.status(statusCode).json(exceptionRes);
     }
 
     // 解析异常，区分不同类型的异常并提取相关信息

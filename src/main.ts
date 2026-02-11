@@ -1,5 +1,4 @@
 import { NestFactory } from '@nestjs/core';
-import { Logger } from '@nestjs/common';
 import { AppModule } from './app.module.js';
 
 import figlet from 'figlet';
@@ -8,8 +7,11 @@ import { atlas } from 'gradient-string';
 import compression from 'compression';
 import express from 'express';
 
+import { Logger as pinoLogger } from 'nestjs-pino';
+import { Logger } from '@nestjs/common';
+
 async function bootstrap() {
-    const app = await NestFactory.create(AppModule);
+    const app = await NestFactory.create(AppModule, { bufferLogs: true });
     const logger = new Logger('Bootstrap');
 
     app.enableCors({
@@ -72,9 +74,10 @@ async function bootstrap() {
     });
     process.stdout.write(
         atlas.multiline(
-            startupBanner + `\nv${process.env.npm_package_version ?? '0.0.0'} | by FOV-RGT\n`
+            startupBanner + `\nv${process.env.npm_package_version ?? '0.0.0'} | by FOV-RGT\n\n`
         )
     );
+    app.useLogger(app.get(pinoLogger));
 }
 
 bootstrap();
