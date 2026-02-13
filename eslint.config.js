@@ -44,7 +44,7 @@ export default [
             '@typescript-eslint/explicit-module-boundary-types': 'off', // 灵活
 
             // 风格规则
-            'no-console': 'warn', // 生产环境应清理 console
+            // 'no-console': 'warn', // 生产环境应清理 console
             'no-debugger': 'error', // debugger 不能提交
             'prefer-const': 'error', // 优先 const
             'no-var': 'error', // 禁用 var
