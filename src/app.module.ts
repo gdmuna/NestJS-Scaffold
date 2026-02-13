@@ -52,7 +52,7 @@ import { RequestPreprocessingMiddleware } from './common/middleware/request-prep
                         },
                     } : undefined,
                     serializers: {
-                        err: pino.stdSerializers.res, // 错误堆栈交由 exceptions.filter 处理，避免重复记录
+                        err: () => undefined, // 错误堆栈交由 exceptions.filter 处理，避免重复记录
                         // 请求序列化
                         // req: (req) => {
                         //     return {
