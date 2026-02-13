@@ -40,6 +40,7 @@
     "dotenv": "^17.2.4",
     "figlet": "^1.10.0",
     "gradient-string": "^3.0.0",
+    "helmet": "^8.1.0",
     "nestjs-pino": "^4.5.0",
     "nestjs-zod": "^5.1.1",
     "pg": "^8.18.0",

@@ -10,10 +10,14 @@ import express from 'express';
 import { Logger as pinoLogger } from 'nestjs-pino';
 import { Logger } from '@/common/logger.service.js';
 
+import helmet from 'helmet';
+
 async function bootstrap() {
     const app = await NestFactory.create(AppModule, { bufferLogs: true });
     app.useLogger(app.get(pinoLogger));
     const logger = new Logger('Bootstrap');
+
+    app.use(helmet());
 
     app.enableCors({
         origin: (origin: string, callback: any) => {
