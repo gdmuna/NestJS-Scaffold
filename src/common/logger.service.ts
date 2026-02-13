@@ -1,85 +1,116 @@
 import { Injectable } from '@nestjs/common';
-import pino from 'pino';
+import { Logger as NestLogger } from '@nestjs/common';
+import { ConsoleFormatter } from '@/utils/helpers/console-formatter.js';
 
-function createLogger() {
-    const destination = pino.destination({
-        dest: './logs/app.log',
-        sync: false, // 异步写入
-        mkdir: true,
-    });
-    if (process.env.NODE_ENV === 'development') {
-        return pino({
-            transport: {
-                target: 'pino-pretty',
-                options: {
-                    colorize: true,
-                    translateTime: 'SYS:standard',
-                    // ignore: 'pid,hostname',
-                },
-            },
-            level: 'trace',
-            serializers: {
-                err: pino.stdSerializers.err, // 正确序列化错误堆栈
-                req: pino.stdSerializers.req, // 序列化 HTTP 请求
-                res: pino.stdSerializers.res, // 序列化 HTTP 响应
-            },
-            redact: {
-                paths: ['*.body.password', '*.headers.authorization'],
-                censor: '[REDACTED]',
-            },
-        });
-    }
-    return pino(
-        {
-            base: {
-                env: process.env.NODE_ENV,
-                app: 'nestjs-demo-basic',
-                version: process.env.npm_package_version,
-            },
-            level: 'info',
-            serializers: {
-                err: pino.stdSerializers.err,
-                req: pino.stdSerializers.req,
-                res: pino.stdSerializers.res,
-            },
-            redact: {
-                paths: ['*.body.password', '*.headers.authorization'],
-                censor: '[REDACTED]',
-            },
-        },
-        destination
-    );
-}
+type LEVELS = 'verbose' | 'debug' | 'log' | 'warn' | 'error' | 'fatal';
 
+/**
+ * @description: 自定义 Logger 服务，增强日志功能
+ * - 提供了 trace、debug、info、warn、error、fatal 等日志级别方法
+ * - 在日志输出失败时，自动降级到 console 方法，确保日志不丢失
+ * - 可以在日志中添加上下文信息，便于定位问题
+ * @example
+ * new Logger('UserService').info('User created successfully');
+ */
 @Injectable()
-export class LoggerService {
-    private readonly logger = createLogger();
-
-    get(name: string) {
-        return this.logger.child({ name });
+export class Logger extends NestLogger {
+    private _logger(level: LEVELS, message: any, context?: string) {
+        try {
+            switch (level) {
+                case 'verbose':
+                    super.verbose(message, context);
+                    break;
+                case 'debug':
+                    super.debug(message, context);
+                    break;
+                case 'log':
+                    super.log(message, context);
+                    break;
+                case 'warn':
+                    super.warn(message, context);
+                    break;
+                case 'error':
+                    super.error(message, context);
+                    break;
+                case 'fatal':
+                    super.fatal(message, context);
+                    break;
+            }
+        } catch (err: any) {
+            const ctx = this.context;
+            const payload = {
+                context: ctx ?? 'Logger',
+                ...(typeof message === 'object' && message !== null ? message : { message }),
+            };
+            const formatData = ConsoleFormatter.format(level, payload, context);
+            switch (level) {
+                case 'verbose':
+                    console.debug(formatData);
+                    break;
+                case 'debug':
+                    console.debug(formatData);
+                    break;
+                case 'log':
+                    console.info(formatData);
+                    break;
+                case 'warn':
+                    console.warn(formatData);
+                    break;
+                case 'error':
+                case 'fatal':
+                    console.error(formatData);
+                    break;
+            }
+            const expectionStack = err.stack ?? 'No stack trace available';
+            const selfExpectionPayload = {
+                context: 'Logger',
+                error: {
+                    type: err.constructor?.name ?? 'Unknown',
+                    code: err.code ?? 'PINO_LOGGER_EXCEPTION',
+                    message: err.message ?? 'Unexpected Logger Error',
+                    status: 500,
+                },
+            };
+            const selfExceptionData = ConsoleFormatter.format(
+                'error',
+                selfExpectionPayload,
+                `Internal error\n${expectionStack}`
+            );
+            console.error(selfExceptionData);
+        }
     }
 
-    fatal(message: string, context?: string) {
-        this.logger.fatal({ context }, message);
+    verbose(message: any, context?: string) {
+        this._logger('verbose', message, context);
     }
 
-    error(message: string, context?: string) {
-        this.logger.error({ context }, message);
+    // trace 作为 verbose 的别名
+    trace(message: any, context?: string) {
+        this._logger('verbose', message, context);
     }
 
-    warn(message: string, context?: string) {
-        this.logger.warn({ context }, message);
+    debug(message: any, context?: string) {
+        this._logger('debug', message, context);
     }
 
-    info(message: string, context?: string) {
-        this.logger.info({ context }, message);
+    log(message: any, context?: string) {
+        this._logger('log', message, context);
     }
 
-    debug(message: string, context?: string) {
-        this.logger.debug({ context }, message);
+    // info 作为 log 的别名
+    info(message: any, context?: string) {
+        this._logger('log', message, context);
     }
 
-    trace(message: string, context?: string) {
-        this.logger.trace({ context }, message);
+    warn(message: any, context?: string) {
+        this._logger('warn', message, context);
+    }
+
+    error(message: any, context?: string) {
+        this._logger('error', message, context);
+    }
+
+    fatal(message: any, context?: string) {
+        this._logger('fatal', message, context);
     }
 }

@@ -1,9 +1,9 @@
-import { Controller, Get, HttpException } from '@nestjs/common';
+import { Controller, Get } from '@nestjs/common';
 import { AppService } from './app.service.js';
-import { Body, Post, HttpStatus } from '@nestjs/common';
-import { BussinessException } from './common/exceptions/business.exception.js';
+import { Body, Post, HttpStatus, HttpException } from '@nestjs/common';
+import { BusinessException } from './common/exceptions/business.exception.js';
 import { LoginDto } from './app.dto.js';
-import { Logger } from '@nestjs/common';
+import { Logger } from '@/common/logger.service.js';
 
 @Controller()
 export class AppController {
@@ -12,8 +12,15 @@ export class AppController {
 
     @Get('hello')
     getHello() {
-        this.logger.verbose('Handling getHello request');
-        // throw new HttpException({ status: HttpStatus.INTERNAL_SERVER_ERROR, error: 'Simula Internal Exception', code: 'Simula_Internal_Exception' }, HttpStatus.INTERNAL_SERVER_ERROR);
+        // this.logger.verbose({ message: 'wtf', ttt: 666 }, '666');
+        // throw new HttpException(
+        //     {
+        //         message: 'Simula Internal Exception',
+        //         code: 'Simula_Internal_Exception',
+        //         timestamp: new Date().toISOString(),
+        //     },
+        //     HttpStatus.INTERNAL_SERVER_ERROR
+        // );
         return this.appService.getHello();
     }
 
@@ -32,7 +39,7 @@ export class AppController {
                 token: 'fake-jwt-token',
             };
         } else {
-            throw new BussinessException(
+            throw new BusinessException(
                 'Invalid username or password',
                 'AUTH_FAILED',
                 HttpStatus.UNAUTHORIZED

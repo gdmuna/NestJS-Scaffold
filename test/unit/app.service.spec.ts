@@ -2,6 +2,17 @@ import { AppService } from '@/app.service';
 import { PrismaService } from '@/common/prisma.service';
 import { ConfigService } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
+import { PinoLogger } from 'nestjs-pino';
+
+// Mock PinoLogger
+const mockPinoLogger = {
+    trace: jest.fn(),
+    debug: jest.fn(),
+    info: jest.fn(),
+    warn: jest.fn(),
+    error: jest.fn(),
+    fatal: jest.fn(),
+};
 
 describe('AppService', () => {
     let service: AppService;
@@ -9,7 +20,15 @@ describe('AppService', () => {
 
     beforeEach(async () => {
         module = await Test.createTestingModule({
-            providers: [AppService, PrismaService, ConfigService],
+            providers: [
+                AppService,
+                PrismaService,
+                ConfigService,
+                {
+                    provide: PinoLogger,
+                    useValue: mockPinoLogger,
+                },
+            ],
         }).compile();
         service = module.get(AppService);
     });

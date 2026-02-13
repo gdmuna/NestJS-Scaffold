@@ -1,11 +1,11 @@
-import { BussinessException } from '@/common/exceptions/business.exception.js';
+import { BusinessException } from '@/common/exceptions/business.exception.js';
 import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus } from '@nestjs/common';
 import { Request as originRequest, Response } from 'express';
 import { PrismaClientKnownRequestError } from '@root/prisma/generated/internal/prismaNamespace.js';
 import { ZodValidationException, ZodSerializationException } from 'nestjs-zod';
 import { ZodError } from 'zod/v4';
 import { ThrottlerException } from '@nestjs/throttler';
-import { Logger } from '@nestjs/common';
+import { Logger } from '../logger.service.js';
 
 interface Request extends originRequest {
     user?: any;
@@ -23,14 +23,16 @@ export class AllExceptionsFilter implements ExceptionFilter {
         const response = ctx.getResponse<Response>();
         const request = ctx.getRequest<Request>();
 
-        const { message, code, statusCode, details } = this.parseException(exception);
+        const { message, code, status, details } = this.parseException(exception);
+
+        const stack = (exception as any).stack ?? 'No stack trace available';
 
         const logContext = {
             error: {
                 type: exception?.constructor?.name ?? 'Unknown',
                 code,
                 message,
-                status: statusCode,
+                status,
             },
             ...(request.user && {
                 user: {
@@ -41,23 +43,17 @@ export class AllExceptionsFilter implements ExceptionFilter {
             details,
         };
 
-        if (statusCode >= 500) {
-            this.logger.error(
-                {
-                    ...logContext,
-                    stack: exception instanceof Error ? exception.stack : undefined,
-                },
-                `Internal error: ${message}`
-            );
-        } else if (statusCode === 429) {
+        if (status >= 500) {
+            this.logger.error(logContext, `Internal error\n${stack}`);
+        } else if (status === 429) {
             // 限流 - warn 级别
-            this.logger.warn(logContext, `Rate limit exceeded: ${message}`);
-        } else if (statusCode >= 400) {
+            this.logger.warn(logContext, `Rate limit exceeded\n${stack}`);
+        } else if (status >= 400) {
             // 其他客户端错误 - info 级别
-            this.logger.log(logContext, `Client error: ${message}`);
+            this.logger.info(logContext, `Client error\n${stack}`);
         } else {
             // 其他情况 - fatal 级别
-            this.logger.fatal(logContext, `Unexpected exception: ${message}`);
+            this.logger.fatal(logContext, `Unexpected exception\n${stack}`);
         }
 
         const exceptionRes = {
@@ -68,18 +64,22 @@ export class AllExceptionsFilter implements ExceptionFilter {
             timestamp: new Date().toISOString(),
             details,
         };
-        response.status(statusCode).json(exceptionRes);
+        response.status(status).json(exceptionRes);
     }
 
     // 解析异常，区分不同类型的异常并提取相关信息
     private parseException(exception: unknown) {
         // 处理业务异常
-        if (exception instanceof BussinessException) {
+        if (exception instanceof BusinessException) {
+            const response: any = exception.getResponse();
             return {
-                message: exception.message,
-                code: exception.code,
-                statusCode: exception.httpStatus,
-                details: exception.details,
+                message: exception.message ?? 'Business Exception',
+                code:
+                    typeof response === 'string'
+                        ? response
+                        : (response.code ?? 'BUSINESS_EXCEPTION'),
+                status: exception.getStatus() ?? HttpStatus.BAD_REQUEST,
+                details: typeof response === 'object' ? response.details : undefined,
             };
         }
 
@@ -89,7 +89,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
             return {
                 message: 'Bad Request',
                 code: 'VALIDATION_FAILED',
-                statusCode: HttpStatus.BAD_REQUEST,
+                status: HttpStatus.BAD_REQUEST,
                 details: zodError.issues.map((issue) => ({
                     field: issue.path.join('.'),
                     message: issue.message,
@@ -103,25 +103,28 @@ export class AllExceptionsFilter implements ExceptionFilter {
             return {
                 message: 'Internal Server Error',
                 code: 'SERIALIZATION_ERROR',
-                statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+                status: HttpStatus.INTERNAL_SERVER_ERROR,
             };
         }
 
         if (exception instanceof ThrottlerException) {
             return {
-                message: exception.message,
+                message: exception.message ?? 'Too Many Requests',
                 code: 'TOO_MANY_REQUESTS',
-                statusCode: HttpStatus.TOO_MANY_REQUESTS,
+                status: HttpStatus.TOO_MANY_REQUESTS,
             };
         }
 
         // 处理 HTTP 异常
         if (exception instanceof HttpException) {
-            const response = exception.getResponse();
+            const response: any = exception.getResponse();
             return {
-                message: typeof response === 'string' ? response : (response as any).message,
-                code: (response as any).code ?? 'HTTP_EXCEPTION',
-                statusCode: exception.getStatus(),
+                message:
+                    typeof response === 'string'
+                        ? response
+                        : (response.message ?? 'HTTP Exception'),
+                code: response.code ?? 'HTTP_EXCEPTION',
+                status: exception.getStatus(),
                 details: typeof response === 'object' ? (response as any).details : undefined,
             };
         }
@@ -133,9 +136,9 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
         // 处理未知异常
         return {
-            message: (exception as any).message ?? 'Unknown Internal Server Error',
-            code: 'INTERNAL_SERVER_ERROR',
-            statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+            message: (exception as any).message ?? 'Unexpected Internal Server Error',
+            code: 'UNEXPECTED_INTERNAL_SERVER_ERROR',
+            status: 666,
         };
     }
 
@@ -146,28 +149,28 @@ export class AllExceptionsFilter implements ExceptionFilter {
                 return {
                     message: error.message,
                     code: 'UNIQUE_CONSTRAINT_VIOLATION',
-                    statusCode: HttpStatus.CONFLICT,
+                    status: HttpStatus.CONFLICT,
                     details: error.meta,
                 };
             case 'P2003':
                 return {
                     message: error.message,
                     code: 'FOREIGN_KEY_VIOLATION',
-                    statusCode: HttpStatus.BAD_REQUEST,
+                    status: HttpStatus.BAD_REQUEST,
                     details: error.meta,
                 };
             case 'P2025':
                 return {
                     message: error.message,
                     code: 'RECORD_NOT_FOUND',
-                    statusCode: HttpStatus.NOT_FOUND,
+                    status: HttpStatus.NOT_FOUND,
                     details: error.meta,
                 };
             default:
                 return {
                     message: error.message,
                     code: 'DATABASE_ERROR',
-                    statusCode: HttpStatus.INTERNAL_SERVER_ERROR,
+                    status: HttpStatus.INTERNAL_SERVER_ERROR,
                     details: error.meta,
                 };
         }
