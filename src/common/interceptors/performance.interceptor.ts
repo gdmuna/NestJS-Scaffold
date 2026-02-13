@@ -29,7 +29,7 @@ export class PerformanceInterceptor implements NestInterceptor {
         const ctx = context.switchToHttp();
         const request = ctx.getRequest<Request>();
         const response = ctx.getResponse<Response>();
-        const id = request.id || 'unknown';
+        const requestId = request.id || 'unknown';
         const method = request.method;
         const url = request.url;
         const status = response.statusCode;
@@ -38,8 +38,8 @@ export class PerformanceInterceptor implements NestInterceptor {
         const version = (request as any).version || 'unknown';
 
         return {
+            requestId,
             http: {
-                id,
                 method,
                 url,
                 status,
