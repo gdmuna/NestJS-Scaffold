@@ -1,11 +1,12 @@
-import { Module, RequestMethod } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { AppController } from './app.controller.js';
+import { AppController, TestController } from './app.controller.js';
 import { AppService } from './app.service.js';
-import { PrismaService } from './common/prisma.service.js';
+import { DatabaseService } from './common/database.service.js';
 import { APP_PIPE, APP_INTERCEPTOR, APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { ZodValidationPipe, ZodSerializerInterceptor } from 'nestjs-zod';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter.js';
+import { PerformanceInterceptor } from './common/interceptors/performance.interceptor.js';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { LoggerModule } from 'nestjs-pino';
 import pino from 'pino';
@@ -46,36 +47,37 @@ import { Logger } from '@/common/logger.service.js';
                         },
                     } : undefined,
                     serializers: {
-                        err: () => undefined, // 错误堆栈交由 exceptions.filter 处理，避免重复记录
+                        err: pino.stdSerializers.res, // 错误堆栈交由 exceptions.filter 处理，避免重复记录
                         // 请求序列化
-                        req: (req) => {
-                            return {
-                                id: req.id,
-                                method: req.method,
-                                url: req.url,
-                                query: req.query,
-                                params: req.params,
-                                // 只记录部分关键 headers
-                                headers: {
-                                    'user-agent': req.headers['user-agent'],
-                                    'content-type': req.headers['content-type'],
-                                    authorization: req.headers['authorization'],
-                                },
-                                remoteAddress: req.remoteAddress,
-                                remotePort: req.remotePort,
-                            };
-                        },
+                        // req: (req) => {
+                        //     return {
+                        //         id: req.id,
+                        //         method: req.method,
+                        //         url: req.url,
+                        //         query: req.query,
+                        //         params: req.params,
+                        //         // 只记录部分关键 headers
+                        //         headers: {
+                        //             'user-agent': req.headers['user-agent'],
+                        //             'content-type': req.headers['content-type'],
+                        //             authorization: req.headers['authorization'],
+                        //         },
+                        //         remoteAddress: req.remoteAddress,
+                        //         remotePort: req.remotePort,
+                        //     };
+                        // },
+                        req: () => undefined, // 请求信息交由 performance.interceptor 处理，避免重复记录
                         // 响应序列化
-                        res: (res) => {
-                            return {
-                                statusCode: res.statusCode,
-                                // 只记录关键响应头
-                                headers: {
-                                    'content-type': res.headers['content-type'],
-                                    'content-length': res.headers['content-length'],
-                                },
-                            };
-                        },
+                        // res: (res) => {
+                        //     return {
+                        //         statusCode: res.statusCode,
+                        //         // 只记录关键响应头
+                        //         headers: {
+                        //             'content-type': res.headers['content-type'],
+                        //             'content-length': res.headers['content-length'],
+                        //         },
+                        //     };
+                        // },
                     },
                     // prettier-ignore
                     // 全局隐藏敏感信息
@@ -84,7 +86,7 @@ import { Logger } from '@/common/logger.service.js';
                         paths: ['*.headers.authorization'],
                         censor: '[REDACTED]',
                     } : undefined,
-                    autoLogging: !IS_DEV, // 非开发环境自动记录请求日志
+                    autoLogging: false,
                 },
                 pino.destination({
                     dest: './logs/app.log',
@@ -93,14 +95,15 @@ import { Logger } from '@/common/logger.service.js';
                 }),
             ],
             // 排除的日志记录路径和方法
-            exclude: [
-                { path: '/hello', method: RequestMethod.ALL },
-                { path: '/health', method: RequestMethod.ALL },
-                { path: '/logger/*', method: RequestMethod.ALL },
-            ],
+            // exclude: [
+            //     { path: '/hello', method: RequestMethod.ALL },
+            //     { path: '/health', method: RequestMethod.ALL },
+            //     { path: '/logger/*', method: RequestMethod.ALL },
+            //     { path: '/perf-test/*', method: RequestMethod.ALL },
+            // ],
         }),
     ],
-    controllers: [AppController],
+    controllers: [AppController, TestController],
     providers: [
         {
             provide: APP_PIPE,
@@ -111,6 +114,10 @@ import { Logger } from '@/common/logger.service.js';
             useClass: ZodSerializerInterceptor,
         },
         {
+            provide: APP_INTERCEPTOR,
+            useClass: PerformanceInterceptor,
+        },
+        {
             provide: APP_FILTER,
             useClass: AllExceptionsFilter,
         },
@@ -119,7 +126,7 @@ import { Logger } from '@/common/logger.service.js';
             useClass: ThrottlerGuard,
         },
         AppService,
-        PrismaService,
+        DatabaseService,
         Logger,
     ],
 })

@@ -1,5 +1,5 @@
 import { AppService } from '@/app.service';
-import { PrismaService } from '@/common/prisma.service';
+import { DatabaseService } from '@/common/database.service';
 import { ConfigService } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
 import { PinoLogger } from 'nestjs-pino';
@@ -22,7 +22,7 @@ describe('AppService', () => {
         module = await Test.createTestingModule({
             providers: [
                 AppService,
-                PrismaService,
+                DatabaseService,
                 ConfigService,
                 {
                     provide: PinoLogger,

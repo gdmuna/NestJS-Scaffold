@@ -20,8 +20,8 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
     catch(exception: unknown, host: ArgumentsHost) {
         const ctx = host.switchToHttp();
-        const response = ctx.getResponse<Response>();
         const request = ctx.getRequest<Request>();
+        const response = ctx.getResponse<Response>();
 
         const { message, code, status, details, level } = this.parseException(exception);
 

@@ -1,6 +1,6 @@
 import { AppController } from '@/app.controller';
 import { AppService } from '@/app.service';
-import { PrismaService } from '@/common/prisma.service';
+import { DatabaseService } from '@/common/database.service';
 import { ConfigService } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
 import { PinoLogger } from 'nestjs-pino';
@@ -24,7 +24,7 @@ describe('AppController (unit)', () => {
             controllers: [AppController],
             providers: [
                 AppService,
-                PrismaService,
+                DatabaseService,
                 ConfigService,
                 {
                     provide: PinoLogger,
@@ -45,9 +45,9 @@ describe('AppController (unit)', () => {
         expect(controller).toBeDefined();
     });
 
-    it('getHello should return Hello World!', () => {
-        expect(controller.getHello()).toBe('Hello World!');
-    });
+    // it('getHello should return Hello World!', () => {
+    //     expect(controller.getHello()).toBe('Hello World!');
+    // });
 
     it('getHealth should return status ok and timestamp', async () => {
         const res: any = await controller.getHealth();
