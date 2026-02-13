@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Logger as NestLogger } from '@nestjs/common';
 import { ConsoleFormatter } from '@/utils/helpers/console-formatter.js';
+import { IS_DEV } from '@/utils/constants.js';
 
 type LEVELS = 'verbose' | 'debug' | 'log' | 'warn' | 'error' | 'fatal';
 
@@ -31,6 +32,7 @@ export class Logger extends NestLogger {
                     break;
                 case 'error':
                     super.error(message, context);
+                    // throw new Error('Simulated logger error for testing fallback mechanism');
                     break;
                 case 'fatal':
                     super.fatal(message, context);
@@ -40,9 +42,11 @@ export class Logger extends NestLogger {
             const ctx = this.context;
             const payload = {
                 context: ctx ?? 'Logger',
+                fallback: true,
                 ...(typeof message === 'object' && message !== null ? message : { message }),
             };
-            const formatData = ConsoleFormatter.format(level, payload, context);
+            let formatData = ConsoleFormatter.format(level, payload, context);
+            if (IS_DEV) formatData = JSON.parse(formatData);
             switch (level) {
                 case 'verbose':
                     console.debug(formatData);
@@ -71,11 +75,12 @@ export class Logger extends NestLogger {
                     status: 500,
                 },
             };
-            const selfExceptionData = ConsoleFormatter.format(
+            let selfExceptionData = ConsoleFormatter.format(
                 'error',
                 selfExpectionPayload,
                 `Internal error\n${expectionStack}`
             );
+            if (IS_DEV) selfExceptionData = JSON.parse(selfExceptionData);
             console.error(selfExceptionData);
         }
     }
