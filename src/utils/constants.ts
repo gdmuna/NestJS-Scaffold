@@ -1,5 +1,7 @@
 export const DEFAULT_PORT = Number(process.env.PORT);
 
+export const APP_VERSION = process.env.npm_package_version ?? '0.0.0';
+
 export const IS_DEV = process.env.NODE_ENV === 'development';
 
 export const IS_PROD = process.env.NODE_ENV === 'production';

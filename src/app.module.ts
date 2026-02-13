@@ -6,7 +6,7 @@ import { DatabaseService } from './common/database.service.js';
 import { APP_PIPE, APP_INTERCEPTOR, APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { ZodValidationPipe, ZodSerializerInterceptor } from 'nestjs-zod';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter.js';
-import { PerformanceInterceptor } from './common/interceptors/performance.interceptor.js';
+import { PerformanceInterceptor, RequestContextInterceptor } from './common/interceptors/index.js';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { LoggerModule } from 'nestjs-pino';
 import pino from 'pino';
@@ -111,11 +111,15 @@ import { Logger } from '@/common/logger.service.js';
         },
         {
             provide: APP_INTERCEPTOR,
-            useClass: ZodSerializerInterceptor,
+            useClass: PerformanceInterceptor,
         },
         {
             provide: APP_INTERCEPTOR,
-            useClass: PerformanceInterceptor,
+            useClass: RequestContextInterceptor,
+        },
+        {
+            provide: APP_INTERCEPTOR,
+            useClass: ZodSerializerInterceptor,
         },
         {
             provide: APP_FILTER,

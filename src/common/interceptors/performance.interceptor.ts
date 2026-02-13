@@ -1,6 +1,4 @@
 import { Injectable, NestInterceptor, ExecutionContext, CallHandler } from '@nestjs/common';
-import { Observable, throwError } from 'rxjs';
-import { tap, catchError } from 'rxjs/operators';
 import { Logger } from '@/common/logger.service.js';
 import { Request, Response } from 'express';
 import { SLOW_REQUEST_THRESHOLDS } from '@/utils/constants.js';
@@ -15,38 +13,41 @@ import { SLOW_REQUEST_THRESHOLDS } from '@/utils/constants.js';
 export class PerformanceInterceptor implements NestInterceptor {
     private readonly logger = new Logger(PerformanceInterceptor.name);
 
-    intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
+    intercept(context: ExecutionContext, next: CallHandler) {
+        const ctx = context.switchToHttp();
+        const response = ctx.getResponse<Response>();
+        const startTime = performance.now();
+        response.on('finish', () => {
+            const logContext = this.getContext(context);
+            const isError = response.statusCode >= 400;
+            this.logPerformance(logContext, startTime, isError);
+        });
+        return next.handle();
+    }
+
+    private getContext(context: ExecutionContext) {
         const ctx = context.switchToHttp();
         const request = ctx.getRequest<Request>();
         const response = ctx.getResponse<Response>();
-
-        const startTime = performance.now();
+        const id = request.id || 'unknown';
         const method = request.method;
         const url = request.url;
+        const status = response.statusCode;
         const remoteAddress = request.ip || request.socket.remoteAddress;
         const remotePort = request.socket.remotePort;
+        const version = (request as any).version || 'unknown';
 
-        const logContext = {
+        return {
             http: {
+                id,
                 method,
                 url,
-                status: response.statusCode,
+                status,
                 remoteAddress: remoteAddress || 'unknown',
                 remotePort: remotePort || -1,
             },
+            version,
         };
-
-        return next.handle().pipe(
-            // 成功响应时记录
-            tap(() => {
-                this.logPerformance(logContext, startTime, false);
-            }),
-            // 异常响应时记录
-            catchError((error) => {
-                this.logPerformance(logContext, startTime, true);
-                return throwError(() => error);
-            })
-        );
     }
 
     // 记录性能日志

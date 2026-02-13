@@ -51,14 +51,6 @@ export class TestController {
 
     @Get('hello-world')
     getHello() {
-        // throw new HttpException(
-        //     {
-        //         message: 'Simula Internal Exception',
-        //         code: 'Simula_Internal_Exception',
-        //         timestamp: new Date().toISOString(),
-        //     },
-        //     HttpStatus.INTERNAL_SERVER_ERROR
-        // );
         return this.appService.getHello();
     }
 
@@ -124,8 +116,7 @@ export class TestController {
             // 执行一个耗时 600ms 的查询
             const result = await this.prisma.$queryRaw<Array<{ result: number }>>`
                 SELECT 1 as result
-                FROM (VALUES (1)) AS t(x)
-                WHERE pg_sleep(0.6) IS NULL OR true
+                WHERE pg_sleep(0.6) 
             `;
             return {
                 message: 'Very slow query executed (600ms)',

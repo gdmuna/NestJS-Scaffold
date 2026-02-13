@@ -4,6 +4,7 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '@root/prisma/generated/client.js';
 import { Logger } from './logger.service.js';
 import { SLOW_QUERY_THRESHOLDS } from '@/utils/constants.js';
+import { RequestContextService } from './request-context.service.js';
 
 /**
  * @description Prisma 数据库服务
@@ -47,8 +48,11 @@ export class DatabaseService extends PrismaClient implements OnModuleDestroy, On
 
         // 订阅错误事件
         this.$on('error' as never, (event: any) => {
+            const requestContext = RequestContextService.get();
             this.logger.error(
                 {
+                    requestId: requestContext?.requestId || 'unknown',
+                    version: requestContext?.version || 'unknown',
                     database: {
                         target: event.target ?? 'Unknown',
                         timestamp: event.timestamp ?? new Date(),
@@ -63,8 +67,11 @@ export class DatabaseService extends PrismaClient implements OnModuleDestroy, On
 
         // 订阅警告事件
         this.$on('warn' as never, (event: any) => {
+            const requestContext = RequestContextService.get();
             this.logger.warn(
                 {
+                    requestId: requestContext?.requestId || 'unknown',
+                    version: requestContext?.version || 'unknown',
                     database: {
                         message: event.message ?? 'Unknown error',
                         timestamp: event.timestamp ?? new Date(),
@@ -83,6 +90,7 @@ export class DatabaseService extends PrismaClient implements OnModuleDestroy, On
         duration: number;
         target: string;
     }) {
+        const requestContext = RequestContextService.get();
         const { query, params, target, timestamp } = event;
         const duration = Math.round(event.duration);
 
@@ -96,6 +104,8 @@ export class DatabaseService extends PrismaClient implements OnModuleDestroy, On
 
         // 构造日志上下文
         const logContext = {
+            requestId: requestContext?.requestId || 'unknown',
+            version: requestContext?.version || 'unknown',
             database: {
                 target, // 例如：prisma:query
                 duration,

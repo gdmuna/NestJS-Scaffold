@@ -28,6 +28,8 @@ export class AllExceptionsFilter implements ExceptionFilter {
         const stack = (exception as any).stack ?? 'No stack trace available';
 
         const logContext = {
+            requestId: request.id || 'unknown',
+            version: (request as any).version || 'unknown',
             error: {
                 type: exception?.constructor?.name ?? 'Unknown',
                 code,
