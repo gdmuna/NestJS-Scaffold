@@ -10,6 +10,7 @@ import {
     PerformanceInterceptor,
     RequestContextInterceptor,
     ResponseFormatInterceptor,
+    TimeoutInterceptor,
 } from './common/interceptors/index.js';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { LoggerModule } from 'nestjs-pino';
@@ -129,6 +130,10 @@ import { RequestPreprocessingMiddleware } from './common/middleware/request-prep
         {
             provide: APP_INTERCEPTOR,
             useClass: ResponseFormatInterceptor,
+        },
+        {
+            provide: APP_INTERCEPTOR,
+            useClass: TimeoutInterceptor,
         },
         {
             provide: APP_INTERCEPTOR,

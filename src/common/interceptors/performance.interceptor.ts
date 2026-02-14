@@ -19,8 +19,8 @@ export class PerformanceInterceptor implements NestInterceptor {
         const startTime = performance.now();
         response.on('finish', () => {
             const logContext = this.getContext(context);
-            const isError = response.statusCode >= 400;
-            this.logPerformance(logContext, startTime, isError);
+            const hasError = response.statusCode >= 400;
+            this.logPerformance(logContext, startTime, hasError);
         });
         return next.handle();
     }
@@ -39,6 +39,7 @@ export class PerformanceInterceptor implements NestInterceptor {
 
         return {
             requestId,
+            version,
             http: {
                 method,
                 url,
@@ -46,17 +47,16 @@ export class PerformanceInterceptor implements NestInterceptor {
                 remoteAddress: remoteAddress || 'unknown',
                 remotePort: remotePort || -1,
             },
-            version,
         };
     }
 
     // 记录性能日志
-    private logPerformance(logContext: any, startTime: number, isException: boolean) {
+    private logPerformance(logContext: any, startTime: number, hasError: boolean) {
         const { method, url } = logContext.http;
         const duration = Math.round(performance.now() - startTime);
         logContext.http.duration = duration;
         logContext.http.durationUnit = 'ms';
-        logContext.http.isException = isException;
+        logContext.http.hasError = hasError;
 
         // 根据耗时和状态码选择日志级别
         if (duration >= SLOW_REQUEST_THRESHOLDS.error) {
@@ -66,7 +66,7 @@ export class PerformanceInterceptor implements NestInterceptor {
         } else if (duration >= SLOW_REQUEST_THRESHOLDS.warn) {
             // 超过 1 秒：warn 级别
             this.logger.warn(logContext, `[${method}](${url}) Slow request (${duration}ms)`);
-        } else if (isException) {
+        } else if (hasError) {
             // 快速异常请求：info 级别
             this.logger.info(logContext, `[${method}](${url}) Request failed (${duration}ms)`);
         } else {

@@ -49,10 +49,13 @@ export class AllExceptionsFilter implements ExceptionFilter {
             this.logger.error(logContext, `Internal error\n${stack}`);
         } else if (level === 'warn' || (!level && status === 429)) {
             // 限流 - warn 级别
-            this.logger.warn(logContext, `Rate limit exceeded\n${stack}`);
+            this.logger.warn(logContext, `Rate limit exceeded\n${message}`);
+        } else if (level === 'warn' || (!level && status === 408)) {
+            // 请求超时 - warn 级别
+            this.logger.warn(logContext, message);
         } else if (level === 'info' || (!level && status >= 400)) {
             // 其他客户端错误 - info 级别
-            this.logger.info(logContext, `Client error\n${stack}`);
+            this.logger.info(logContext, `Client error\n${message}`);
         } else {
             // 其他情况 - fatal 级别
             this.logger.fatal(logContext, `Unexpected exception\n${stack}`);
@@ -124,7 +127,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
                 message:
                     typeof response === 'string'
                         ? response
-                        : (response.message ?? 'HTTP Exception'),
+                        : (exception.message ?? 'HTTP Exception'),
                 code: response.code ?? 'HTTP_EXCEPTION',
                 status: exception.getStatus(),
                 details: typeof response === 'object' ? (response as any).details : undefined,
