@@ -78,14 +78,14 @@ async function bootstrap() {
 
 bootstrap().then(async () => {
     // 等待 pino-pretty Worker 线程完成日志输出
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 200));
     const startupBanner = await figlet.text('NestJS-Demo-Basic', {
         font: 'Slant',
         horizontalLayout: 'fitted',
     });
     process.stdout.write(
         atlas.multiline(
-            startupBanner + `\nv${process.env.npm_package_version ?? '0.0.0'} | by FOV-RGT\n\n`
+            startupBanner + `\nv${process.env.npm_package_version || '0.0.0'} | by FOV-RGT\n\n`
         )
     );
 });
