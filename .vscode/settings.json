@@ -33,5 +33,8 @@
   "files.trimTrailingWhitespace": true, // 保存时移除行尾空白
   "files.insertFinalNewline": true, // 文件末尾自动插入换行符
   "files.encoding": "utf8", // 文件编码：UTF-8
-  "files.eol": "\n" // 行结束符：Unix 风格（\n）
+  "files.eol": "\n", // 行结束符：Unix 风格（\n）
+
+  // ===== NPM 配置 =====
+  "npm.exclude": "**/dist" // 排除 dist 目录下的 package.json
 }

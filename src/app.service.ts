@@ -1,8 +1,9 @@
 import { Injectable } from '@nestjs/common';
 import { uptime } from 'node:process';
-import { DatabaseService } from './common/database.service.js';
+import { DatabaseService } from '@/common/database.service.js';
 import { ConfigService } from '@nestjs/config';
 import { Logger } from '@/common/logger.service.js';
+import { APP_VERSION } from '@/utils/constants.js';
 
 @Injectable()
 export class AppService {
@@ -21,9 +22,8 @@ export class AppService {
         const databaseHealth = await this.checkDatabaseHealth();
         return {
             status: 'ok',
-            timestamp: new Date().toISOString(),
             uptime: uptime(),
-            version: this.configService.get('npm_package_version', 'N/A'),
+            version: APP_VERSION,
             gitCommit: this.configService.get('GIT_COMMIT', 'N/A'),
             components: {
                 database: {

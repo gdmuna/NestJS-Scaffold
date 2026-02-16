@@ -1,8 +1,8 @@
 import { Controller, Get } from '@nestjs/common';
-import { AppService } from './app.service.js';
+import { AppService } from '@/app.service.js';
 import { Body, Post, HttpStatus, HttpException } from '@nestjs/common';
-import { BusinessException } from './common/exceptions/business.exception.js';
-import { LoginDto } from './app.dto.js';
+import { BusinessException } from '@/common/exceptions/business.exception.js';
+import { LoginDto } from '@/app.dto.js';
 import { Logger } from '@/common/logger.service.js';
 import { PinoLogger } from 'nestjs-pino';
 import { DatabaseService } from '@/common/database.service.js';

@@ -5,7 +5,7 @@ import { PrismaClientKnownRequestError } from '@root/prisma/generated/internal/p
 import { ZodValidationException, ZodSerializationException } from 'nestjs-zod';
 import { ZodError } from 'zod/v4';
 import { ThrottlerException } from '@nestjs/throttler';
-import { Logger } from '../logger.service.js';
+import { Logger } from '@/common/logger.service.js';
 
 interface Request extends originRequest {
     user?: any;

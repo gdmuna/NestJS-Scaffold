@@ -1,4 +1,5 @@
 import os from 'os';
+import { APP_NAME } from '@/utils/constants.js';
 
 type Message = string | Error | Record<string, any>;
 
@@ -18,7 +19,7 @@ export class ConsoleFormatter {
             time: Date.now(),
             pid: process.pid,
             hostname: os.hostname(),
-            name: process.env.npm_package_name,
+            name: APP_NAME,
             ...this.formatMsgAndCtx(message, context),
         });
     }

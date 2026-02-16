@@ -1,10 +1,9 @@
 {
   "compilerOptions": {
-    // 模块系统：输出 ESNext 格式
-    "module": "ESNext",
+    // 模块系统：输出 nodenext 格式
+    "module": "nodenext",
 
-    // 模块解析策略：使用 Node.js 风格解析
-    "moduleResolution": "node",
+    "moduleResolution": "nodenext",
 
     // 生成 .d.ts 声明文件（用于类型提示）
     "declaration": true,
@@ -25,7 +24,7 @@
     "esModuleInterop": true,
 
     // 编译目标：输出最新的 JavaScript 语法（兼容现代 Node.js）
-    "target": "ESNext",
+    "target": "esnext",
 
     // 生成 source map 文件（用于调试）
     "sourceMap": true,

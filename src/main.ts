@@ -1,16 +1,17 @@
 import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module.js';
+import { AppModule } from '@/app.module.js';
 
 import figlet from 'figlet';
 import { atlas } from 'gradient-string';
 
 import compression from 'compression';
-import express from 'express';
 
 import { Logger as pinoLogger } from 'nestjs-pino';
 import { Logger } from '@/common/logger.service.js';
 
 import helmet from 'helmet';
+
+import { APP_VERSION } from '@/utils/constants.js';
 
 async function bootstrap() {
     const app = await NestFactory.create(AppModule, { bufferLogs: true });
@@ -48,9 +49,6 @@ async function bootstrap() {
         maxAge: 86400,
     });
 
-    app.use(express.json({ limit: '10mb' }));
-    app.use(express.urlencoded({ extended: true, limit: '10mb' }));
-
     app.use(compression({ threshold: 1024 }));
 
     const port = parseInt(process.env.PORT ?? '3000');
@@ -84,13 +82,10 @@ bootstrap()
             font: 'Slant',
             horizontalLayout: 'fitted',
         });
-        process.stdout.write(
-            atlas.multiline(
-                startupBanner + `\nv${process.env.npm_package_version || '0.0.0'} | by FOV-RGT\n\n`
-            )
-        );
+        process.stdout.write(atlas.multiline(startupBanner + `\nv${APP_VERSION} | by FOV-RGT\n\n`));
     })
     .catch((err) => {
+        // eslint-disable-next-line no-console
         console.error('Bootstrap failed:', err);
         process.exit(1);
     });

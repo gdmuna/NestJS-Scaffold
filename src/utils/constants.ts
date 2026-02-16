@@ -1,8 +1,13 @@
 import 'dotenv/config';
+import _package_info from '@root/package.json' with { type: 'json' };
 
 export const DEFAULT_PORT = Number(process.env.PORT);
 
-export const APP_VERSION = process.env.npm_package_version ?? '0.0.0';
+export const PACKAGE_INFO = _package_info;
+
+export const APP_VERSION = process.env.APP_VERSION || PACKAGE_INFO.version || 'unknown';
+
+export const APP_NAME = process.env.APP_NAME || PACKAGE_INFO.name || 'unknown';
 
 export const IS_DEV = process.env.NODE_ENV === 'development';
 

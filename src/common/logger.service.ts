@@ -48,6 +48,7 @@ export class Logger extends NestLogger {
             };
             let formatData = ConsoleFormatter.format(level, payload, context);
             if (IS_DEV) formatData = JSON.parse(formatData);
+            /* eslint-disable no-console */
             switch (level) {
                 case 'verbose':
                     console.debug(formatData);
@@ -66,6 +67,7 @@ export class Logger extends NestLogger {
                     console.error(formatData);
                     break;
             }
+            /* eslint-enable no-console */
             const expectionStack = err.stack ?? 'No stack trace available';
             const selfExpectionPayload = {
                 context: 'Logger',
@@ -82,6 +84,7 @@ export class Logger extends NestLogger {
                 `Internal error\n${expectionStack}`
             );
             if (IS_DEV) selfExceptionData = JSON.parse(selfExceptionData);
+            // eslint-disable-next-line no-console
             console.error(selfExceptionData);
         }
     }

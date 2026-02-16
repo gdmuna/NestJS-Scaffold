@@ -14,7 +14,7 @@ export class RequestPreprocessingMiddleware implements NestMiddleware {
         const reqId = req.headers['x-request-id'] ?? ulid();
         req.id = typeof reqId === 'string' ? reqId : reqId[0];
         res.setHeader('X-Request-Id', req.id);
-        req.version = APP_VERSION ?? 'unknown';
+        req.version = APP_VERSION;
         next();
     }
 }

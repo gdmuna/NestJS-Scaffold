@@ -48,7 +48,7 @@ RUN pnpm prune --prod --ignore-scripts
 FROM node:22-slim
 
 # 安装依赖和 OpenSSL (运行时 Prisma Client 可能需要)
-RUN apt-get update -y && apt-get install -y openssl curl && rm -rf /var/lib/apt/lists/* && npm install -g pnpm
+RUN apt-get update -y && apt-get install -y openssl curl && rm -rf /var/lib/apt/lists/*
 
 # 设置工作目录
 WORKDIR /app
@@ -59,23 +59,24 @@ COPY --from=builder /app/node_modules ./node_modules
 # 从构建阶段复制构建输出
 COPY --from=builder /app/dist ./dist
 
-# 复制 package.json (用于识别项目信息)
-COPY package.json ./
-
 # 构建参数
-ARG GIT_COMMIT=unknown
-ARG APP_VERSION=0.0.0
+ARG APP_VERSION
+ARG APP_NAME
 ARG NODE_ENV=production
+ARG GIT_COMMIT=unknown
 ARG PORT=3000
 
 # 环境变量
+ENV APP_VERSION=$APP_VERSION
+ENV APP_NAME=$APP_NAME
 ENV GIT_COMMIT=$GIT_COMMIT
 ENV NODE_ENV=$NODE_ENV
-ENV npm_package_version=$APP_VERSION
 ENV PORT=$PORT
+
+EXPOSE ${PORT}
 
 # 健康检查
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
     CMD curl --fail http://localhost:${PORT}/health
 # 启动应用
-CMD ["node", "dist/src/main.js"]
+CMD ["node", "dist/src/main"]

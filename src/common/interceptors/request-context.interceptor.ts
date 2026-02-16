@@ -1,6 +1,6 @@
 import { Injectable, NestInterceptor, ExecutionContext, CallHandler } from '@nestjs/common';
 import { Observable } from 'rxjs';
-import { RequestContextService } from '../request-context.service.js';
+import { RequestContextService } from '@/common/request-context.service.js';
 import { Request } from '@/common/middleware/request-preprocessing.middleware.js';
 
 /**

@@ -33,18 +33,11 @@ export default [
             ...tsPlugin.configs.recommended.rules,
 
             // TypeScript 特定规则
-            '@typescript-eslint/no-unused-vars': [
-                'error',
-                {
-                    argsIgnorePattern: '^_',
-                    varsIgnorePattern: '^_',
-                },
-            ],
             '@typescript-eslint/no-explicit-any': 'off', // 允许显式 any
             '@typescript-eslint/explicit-module-boundary-types': 'off', // 灵活
 
             // 风格规则
-            // 'no-console': 'warn', // 生产环境应清理 console
+            'no-console': 'warn', // 生产环境应清理 console
             'no-debugger': 'error', // debugger 不能提交
             'prefer-const': 'error', // 优先 const
             'no-var': 'error', // 禁用 var
