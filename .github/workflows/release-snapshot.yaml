@@ -14,7 +14,7 @@ permissions:
 env:
   DOCKER_USERNAME: ${{ vars.DOCKER_USERNAME || github.repository_owner }}
   DOCKER_REPO_NAME: ${{ vars.DOCKER_REPO_NAME || github.event.repository.name }}
-  DB_URL: ${{ secrets.PROD_DB_URL }}
+  DATABASE_URL: ${{ secrets.PROD_DB_URL }}
   BACKEND_CONTAINER_PORT: ${{ vars.PROD_BACKEND_CONTAINER_PORT || 3000 }}
   BACKEND_HOST_PORT: ${{ vars.PROD_BACKEND_HOST_PORT || 3001 }}
 

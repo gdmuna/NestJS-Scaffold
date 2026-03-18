@@ -158,7 +158,7 @@ docs(readme): update installation guide
 - 当前环境变量：
     - `NODE_ENV` - 运行环境（development/production）
     - `PORT` - 服务端口
-    - `DB_URL` - 数据库连接 URL（注意：从 v0.3.0 起从 `DATABASE_URL` 重命名）
+    - `DATABASE_URL` - 数据库连接 URL（注意：从 v0.3.0 起从 `DATABASE_URL` 重命名）
 
 ### 分支与版本管理
 
@@ -323,7 +323,7 @@ async findAll() {
 
 1. **pnpm 命令不存在**：运行 `npm install -g pnpm@latest`
 2. **Prisma Client 未生成**：运行 `pnpm prisma generate`
-3. **数据库连接失败**：检查 `.env` 中的 `DB_URL`
+3. **数据库连接失败**：检查 `.env` 中的 `DATABASE_URL`
 4. **端口被占用**：修改 `.env` 中的 `PORT` 或停止占用进程
 5. **commit 被拒绝**：提交信息不符合规范，使用 `pnpm commit` 交互式提交
 

@@ -9,7 +9,7 @@ set -e
 DOCKER_IMAGE=$1
 CONTAINER_NAME=${2:-nestjs-app}
 PORT=${3:-3000}
-DB_URL=$4
+DATABASE_URL=$4
 NETWORK=$5
 
 # 颜色定义
@@ -26,7 +26,7 @@ if [ -z "$DOCKER_IMAGE" ]; then
     exit 1
 fi
 
-if [ -z "$DB_URL" ]; then
+if [ -z "$DATABASE_URL" ]; then
     echo -e "${YELLOW}⚠️  警告: 未提供数据库URL，容器可能无法连接数据库${NC}"
     echo -e "${YELLOW}   建议使用: bash deploy-server.sh $DOCKER_IMAGE $CONTAINER_NAME $PORT \"postgresql://...\"${NC}"
 fi
@@ -77,9 +77,9 @@ if [ -n "$NETWORK" ]; then
 fi
 
 # 如果提供了数据库URL，添加环境变量
-if [ -n "$DB_URL" ]; then
+if [ -n "$DATABASE_URL" ]; then
     DOCKER_RUN_CMD="$DOCKER_RUN_CMD \
-    -e DB_URL=\"$DB_URL\""
+    -e DATABASE_URL=\"$DATABASE_URL\""
 fi
 
 # 添加日志配置和镜像

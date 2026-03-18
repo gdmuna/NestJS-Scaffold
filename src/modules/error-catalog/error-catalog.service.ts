@@ -8,7 +8,7 @@ import { API_DOCS_BASE_URL } from '@/constants/index.js';
  * 支持自定义基础 URL，用于在不同环境使用不同的文档链接
  */
 @Injectable()
-export class ErrorDocumentationService {
+export class ErrorCatalogService {
     private readonly baseUrl = API_DOCS_BASE_URL;
     constructor() {}
 

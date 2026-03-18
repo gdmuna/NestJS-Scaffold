@@ -16,12 +16,12 @@ export class DatabaseService extends PrismaClient implements OnModuleDestroy, On
     private readonly logger = new Logger(DatabaseService.name);
 
     constructor() {
-        const DB_URL = process.env.DB_URL;
-        if (!DB_URL) {
-            throw new Error('DB_URL environment variable is not set');
+        const DATABASE_URL = process.env.DATABASE_URL;
+        if (!DATABASE_URL) {
+            throw new Error('DATABASE_URL environment variable is not set');
         }
         const adapter = new PrismaPg({
-            connectionString: DB_URL,
+            connectionString: DATABASE_URL,
             max: 12,
             min: 2, // 最小保持 2 个连接
             idleTimeoutMillis: 30000, // 30秒空闲超时

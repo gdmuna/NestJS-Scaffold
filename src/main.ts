@@ -13,6 +13,9 @@ import helmet from 'helmet';
 
 import { APP_VERSION } from '@/app.constant.js';
 
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
+import { cleanupOpenApiDoc } from 'nestjs-zod';
+
 async function bootstrap() {
     const app = await NestFactory.create(AppModule, { bufferLogs: true });
     app.useLogger(app.get(pinoLogger));
@@ -50,6 +53,15 @@ async function bootstrap() {
     });
 
     app.use(compression({ threshold: 1024 }));
+
+    const config = new DocumentBuilder()
+        .setTitle('Nestjs-Demo-Basic API')
+        .setDescription('The API description')
+        .setVersion('1.0')
+        .addBearerAuth({ type: 'http', scheme: 'bearer', bearerFormat: 'JWT' }, 'access-token')
+        .build();
+    const documentFactory = SwaggerModule.createDocument(app, config);
+    SwaggerModule.setup('api-doc', app, cleanupOpenApiDoc(documentFactory));
 
     const port = parseInt(process.env.PORT ?? '3000');
     await app.listen(port).catch(async (err) => {

@@ -136,7 +136,7 @@ cp .env.example .env
 ```env
 NODE_ENV=development
 PORT=3000
-DB_URL=postgresql://username:password@localhost:5432/mydb?schema=public
+DATABASE_URL=postgresql://username:password@localhost:5432/mydb?schema=public
 ```
 
 ### 4. 初始化数据库
@@ -248,7 +248,7 @@ pnpm prisma studio        # 数据库可视化界面
 | ---------- | -------------- | ------------- | ---- |
 | `NODE_ENV` | 运行环境       | `development` | 否   |
 | `PORT`     | 服务端口       | `3000`        | 否   |
-| `DB_URL`   | 数据库连接 URL | -             | 是\* |
+| `DATABASE_URL`   | 数据库连接 URL | -             | 是\* |
 
 \*仅在使用数据库功能时必需
 
@@ -402,7 +402,7 @@ docker build -t nestjs-demo-basic:latest .
 ```bash
 docker run -d \
   -p 3000:3000 \
-  -e DB_URL="postgresql://user:pass@host:5432/db" \
+  -e DATABASE_URL="postgresql://user:pass@host:5432/db" \
   nestjs-demo-basic:latest
 ```
 
@@ -420,7 +420,7 @@ services:
             - '3000:3000'
         environment:
             - NODE_ENV=production
-            - DB_URL=postgresql://postgres:password@db:5432/mydb
+            - DATABASE_URL=postgresql://postgres:password@db:5432/mydb
         depends_on:
             - db
 
@@ -519,7 +519,7 @@ pnpm prisma generate
 
 #### 3. 数据库连接失败
 
-- 检查 `.env` 中的 `DB_URL` 是否正确
+- 检查 `.env` 中的 `DATABASE_URL` 是否正确
 - 确保 PostgreSQL 服务已启动
 - 验证数据库凭据和网络连接
 

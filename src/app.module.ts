@@ -23,7 +23,7 @@ import {
 } from '@/common/middleware/index.js';
 import { envValidationSchema } from '@/config/env.validation.js';
 import { AuthGuard } from '@/common/guards/index.js';
-import { ErrorDocumentationModule } from '@/modules/index.js';
+import { ErrorCatalogModule } from '@/modules/index.js';
 
 @Module({
     imports: [
@@ -79,7 +79,7 @@ import { ErrorDocumentationModule } from '@/modules/index.js';
                 }),
             ],
         }),
-        ErrorDocumentationModule,
+        ErrorCatalogModule,
     ],
     controllers: [AppController, TestController],
     providers: [

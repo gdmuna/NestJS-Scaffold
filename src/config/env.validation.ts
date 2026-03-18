@@ -18,7 +18,7 @@ export const envValidationSchema = z.object({
             return String(parsed);
         })
         .default('3000'),
-    DB_URL: z.url(),
+    DATABASE_URL: z.url(),
     ALLOWED_ORIGINS_PROD: z
         .string()
         .transform((val, ctx) => {

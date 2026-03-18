@@ -6,7 +6,7 @@ import { ZodValidationException, ZodSerializationException } from 'nestjs-zod';
 import { ZodError } from 'zod/v4';
 import { ThrottlerException } from '@nestjs/throttler';
 import { Logger } from '@/common/logger.service.js';
-import { ErrorDocumentationService } from '@/modules/error-catalog/error-catalog.service.js';
+import { ErrorCatalogService } from '@/modules/error-catalog/error-catalog.service.js';
 import { RequestContextService } from '@/common/request-context.service.js';
 
 interface Request extends originRequest {
@@ -20,7 +20,7 @@ interface Request extends originRequest {
 export class AllExceptionsFilter implements ExceptionFilter {
     private readonly logger = new Logger(AllExceptionsFilter.name);
 
-    constructor(private readonly errorDocumentationService: ErrorDocumentationService) {}
+    constructor(private readonly errorCatalogService: ErrorCatalogService) {}
 
     catch(exception: unknown, host: ArgumentsHost) {
         const ctx = host.switchToHttp();
@@ -34,23 +34,22 @@ export class AllExceptionsFilter implements ExceptionFilter {
         const requestContext = RequestContextService.get() ?? null;
 
         const logContext = {
-            // requestId: request.id || 'unknown',
-            // version: (request as any).version || 'unknown',
-            timestamp: new Date().toISOString(),
-            error: {
-                type: exception?.constructor?.name ?? 'Unknown',
-                code,
-                message,
-                status,
-            },
+            requestId: request.id || 'unknown',
+            version: (request as any).version || 'unknown',
             ...(request.user && {
                 user: {
                     id: request.user.id,
                     username: request.user.username,
                 },
             }),
-            requestContext: requestContext,
+            metadata: requestContext?.metadata ?? null,
             details: details ?? null,
+            error: {
+                type: exception?.constructor?.name ?? 'Unknown',
+                code,
+                message,
+                status,
+            },
         };
 
         if (level === 'error' || (!level && status >= 500)) {
@@ -73,12 +72,10 @@ export class AllExceptionsFilter implements ExceptionFilter {
             success: false,
             code,
             message,
-            type: this.errorDocumentationService.getErrorTypeUrl(code),
+            type: this.errorCatalogService.getErrorTypeUrl(code),
             timestamp: new Date().toISOString(),
             context: requestContext,
             details: details ?? null,
-            // requestId: request.id || 'unknown',
-            // timestamp: new Date().toISOString(),
         };
         response.status(status).json(exceptionRes);
     }
