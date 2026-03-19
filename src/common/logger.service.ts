@@ -15,6 +15,9 @@ type LEVELS = 'verbose' | 'debug' | 'log' | 'warn' | 'error' | 'fatal';
  */
 @Injectable()
 export class Logger extends NestLogger {
+    constructor(context: string) {
+        super(context);
+    }
     private _logger(level: LEVELS, message: any, context?: string) {
         try {
             switch (level) {

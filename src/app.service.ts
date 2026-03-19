@@ -11,14 +11,18 @@ export class AppService {
     private readonly logger = new Logger(AppService.name);
     constructor(
         private readonly prisma: DatabaseService,
-        private readonly configService: ConfigService
+        private readonly configService: ConfigService,
+        private readonly requestContextService: RequestContextService
     ) {}
 
     getHello() {
         this.logger.verbose('Handling getHello request');
-        RequestContextService.mergeResponseMetadata({ exampleKey: '666', ccc: { aaa: 'wtf' } });
-        RequestContextService.mergeResponseMetadata({ exampleKey: 'exampleValue' });
-        RequestContextService.mergeResponseMetadata({ ccc: { bbb: 'omg', aaa: '999' } });
+        this.requestContextService.mergeResponseMetadata({
+            exampleKey: '666',
+            ccc: { aaa: 'wtf' },
+        });
+        this.requestContextService.mergeResponseMetadata({ exampleKey: 'exampleValue' });
+        this.requestContextService.mergeResponseMetadata({ ccc: { bbb: 'omg', aaa: '999' } });
         return 'Hello World!';
     }
 

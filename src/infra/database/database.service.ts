@@ -15,7 +15,7 @@ import { RequestContextService } from '../../common/request-context.service.js';
 export class DatabaseService extends PrismaClient implements OnModuleDestroy, OnModuleInit {
     private readonly logger = new Logger(DatabaseService.name);
 
-    constructor() {
+    constructor(private readonly requestContextService: RequestContextService) {
         const DATABASE_URL = process.env.DATABASE_URL;
         if (!DATABASE_URL) {
             throw new Error('DATABASE_URL environment variable is not set');
@@ -51,7 +51,7 @@ export class DatabaseService extends PrismaClient implements OnModuleDestroy, On
 
         // 订阅错误事件
         this.$on('error' as never, (event: any) => {
-            const requestContext = RequestContextService.get();
+            const requestContext = this.requestContextService.get();
             this.logger.error(
                 {
                     requestId: requestContext?.requestId || 'unknown',
@@ -70,7 +70,7 @@ export class DatabaseService extends PrismaClient implements OnModuleDestroy, On
 
         // 订阅警告事件
         this.$on('warn' as never, (event: any) => {
-            const requestContext = RequestContextService.get();
+            const requestContext = this.requestContextService.get();
             this.logger.warn(
                 {
                     requestId: requestContext?.requestId || 'unknown',
@@ -93,7 +93,7 @@ export class DatabaseService extends PrismaClient implements OnModuleDestroy, On
         duration: number;
         target: string;
     }) {
-        const requestContext = RequestContextService.get();
+        const requestContext = this.requestContextService.get();
         const { query, params, target, timestamp } = event;
         const duration = Math.round(event.duration);
 

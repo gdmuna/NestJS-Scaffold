@@ -3,6 +3,7 @@
 import { Injectable } from '@nestjs/common';
 import { AsyncLocalStorage } from 'async_hooks';
 import merge from 'lodash/merge.js';
+import cloneDeep from 'lodash/cloneDeep.js';
 
 export interface RequestContext {
     requestId: string;
@@ -15,25 +16,31 @@ export interface RequestContext {
 
 @Injectable()
 export class RequestContextService {
-    private static asyncLocalStorage = new AsyncLocalStorage<RequestContext>();
+    private asyncLocalStorage = new AsyncLocalStorage<RequestContext>();
 
     // 设置当前请求上下文
-    static run(context: RequestContext, callback: () => void) {
+    run(context: RequestContext, callback: () => void) {
         this.asyncLocalStorage.run(context, callback);
     }
 
-    // 获取当前请求上下文
-    static get(): RequestContext | undefined {
+    // 获取当前请求上下文的深拷贝
+    get() {
+        return cloneDeep(this.asyncLocalStorage.getStore());
+    }
+
+    // 获取当前请求的原始上下文
+    private getOriginContext() {
         return this.asyncLocalStorage.getStore();
     }
 
     // 获取 requestId
-    static getRequestId(): string | undefined {
+    getRequestId() {
         return this.get()?.requestId;
     }
 
-    static mergeResponseMetadata(metadata: Record<string, any>) {
-        const context = this.get();
+    //合并新的metadata到当前上下文
+    mergeResponseMetadata(metadata: Record<string, any>) {
+        const context = this.getOriginContext();
         if (!context) return;
         context.metadata = merge(context.metadata, metadata);
         return context.metadata;

@@ -23,35 +23,6 @@ async function bootstrap() {
 
     app.use(helmet());
 
-    app.enableCors({
-        origin: (origin: string, callback: any) => {
-            const allowedOrigins =
-                process.env.ALLOWED_ORIGINS_PROD?.split(',')
-                    .map((o) => o.trim())
-                    .filter((o) => o) || [];
-
-            if (
-                process.env.NODE_ENV === 'development' &&
-                typeof process.env.ALLOWED_ORIGINS_DEV === 'string'
-            ) {
-                allowedOrigins.push(
-                    ...process.env.ALLOWED_ORIGINS_DEV.split(',')
-                        .map((o) => o.trim())
-                        .filter((o) => o)
-                );
-            }
-
-            if (!origin || allowedOrigins.includes(origin)) {
-                callback(null, true);
-            } else {
-                callback(new Error('Not allowed by CORS'));
-            }
-        },
-        methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-        credentials: true,
-        maxAge: 86400,
-    });
-
     app.use(compression({ threshold: 1024 }));
 
     const config = new DocumentBuilder()

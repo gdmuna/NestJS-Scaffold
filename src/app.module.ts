@@ -18,12 +18,14 @@ import { IS_DEV, IS_PROD } from '@/constants/index.js';
 import { APP_NAME } from '@/app.constant.js';
 import { Logger } from '@/common/logger.service.js';
 import {
+    CorsMiddleware,
     RequestPreprocessingMiddleware,
     RequestScopeMiddleware,
 } from '@/common/middleware/index.js';
 import { envValidationSchema } from '@/config/env.validation.js';
 import { AuthGuard } from '@/common/guards/index.js';
 import { ErrorCatalogModule } from '@/modules/index.js';
+import { RequestContextService } from '@/common/request-context.service.js';
 
 @Module({
     imports: [
@@ -114,6 +116,7 @@ import { ErrorCatalogModule } from '@/modules/index.js';
         AppService,
         DatabaseService,
         Logger,
+        RequestContextService,
         {
             provide: APP_FILTER,
             useClass: AllExceptionsFilter,
@@ -122,6 +125,8 @@ import { ErrorCatalogModule } from '@/modules/index.js';
 })
 export class AppModule implements NestModule {
     configure(consumer: MiddlewareConsumer) {
-        consumer.apply(RequestPreprocessingMiddleware, RequestScopeMiddleware).forRoutes('*');
+        consumer
+            .apply(RequestPreprocessingMiddleware, RequestScopeMiddleware, CorsMiddleware)
+            .forRoutes('*');
     }
 }

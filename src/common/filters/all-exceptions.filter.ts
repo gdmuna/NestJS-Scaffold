@@ -20,7 +20,10 @@ interface Request extends originRequest {
 export class AllExceptionsFilter implements ExceptionFilter {
     private readonly logger = new Logger(AllExceptionsFilter.name);
 
-    constructor(private readonly errorCatalogService: ErrorCatalogService) {}
+    constructor(
+        private readonly errorCatalogService: ErrorCatalogService,
+        private readonly requestContextService: RequestContextService
+    ) {}
 
     catch(exception: unknown, host: ArgumentsHost) {
         const ctx = host.switchToHttp();
@@ -31,11 +34,11 @@ export class AllExceptionsFilter implements ExceptionFilter {
 
         const stack = (exception as any).stack ?? 'No stack trace available';
 
-        const requestContext = RequestContextService.get() ?? null;
+        const requestContext = this.requestContextService.get() ?? null;
 
         const logContext = {
             requestId: request.id || 'unknown',
-            version: (request as any).version || 'unknown',
+            version: request.version || 'unknown',
             ...(request.user && {
                 user: {
                     id: request.user.id,
@@ -104,7 +107,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
                 message: issue.message,
                 code: issue.code,
             }));
-            RequestContextService.mergeResponseMetadata({ validationErrors: details });
+            this.requestContextService.mergeResponseMetadata({ validationErrors: details });
             return {
                 message: 'Bad Request',
                 code: 'VALIDATION_FAILED',

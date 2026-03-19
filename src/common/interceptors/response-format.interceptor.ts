@@ -4,10 +4,12 @@ import { RequestContextService } from '@/common/request-context.service.js';
 
 @Injectable()
 export class ResponseFormatInterceptor implements NestInterceptor {
+    constructor(private readonly requestContextService: RequestContextService) {}
+
     intercept(_: ExecutionContext, next: CallHandler) {
         return next.handle().pipe(
             map((data) => {
-                const requestContext = RequestContextService.get() ?? null;
+                const requestContext = this.requestContextService.get() ?? null;
                 return {
                     success: true,
                     data: data ?? null,
