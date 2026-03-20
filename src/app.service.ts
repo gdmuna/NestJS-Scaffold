@@ -1,16 +1,19 @@
+import { APP_VERSION } from '@/constants/index.js';
+
+import { DatabaseService } from '@/infra/database/database.service.js';
+
+import { Logger } from '@/common/logger.service.js';
+import { RequestContextService } from '@/common/request-context.service.js';
+
 import { Injectable } from '@nestjs/common';
 import { uptime } from 'node:process';
-import { DatabaseService } from '@/infra/database/database.service.js';
 import { ConfigService } from '@nestjs/config';
-import { Logger } from '@/common/logger.service.js';
-import { APP_VERSION } from '@/app.constant.js';
-import { RequestContextService } from './common/request-context.service.js';
 
 @Injectable()
 export class AppService {
     private readonly logger = new Logger(AppService.name);
     constructor(
-        private readonly prisma: DatabaseService,
+        private readonly databaseService: DatabaseService,
         private readonly configService: ConfigService,
         private readonly requestContextService: RequestContextService
     ) {}
@@ -46,7 +49,7 @@ export class AppService {
         let timer: NodeJS.Timeout | null = null;
         try {
             await Promise.race([
-                this.prisma.$queryRaw`SELECT 1`,
+                this.databaseService.$queryRaw`SELECT 1`,
                 new Promise(
                     (_, reject) =>
                         (timer = setTimeout(() => reject(new Error('Database timeout')), timeout))

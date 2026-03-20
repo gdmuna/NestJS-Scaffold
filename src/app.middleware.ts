@@ -1,6 +1,37 @@
+import { APP_VERSION } from '@/constants/index.js';
+
+import { RequestContextService } from '@/common/request-context.service.js';
+import { Logger } from '@/common/logger.service.js';
+
 import { Injectable, NestMiddleware } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
-import { Logger } from '@/common/logger.service.js';
+import { ulid } from 'ulid';
+
+@Injectable()
+export class RequestPreprocessingMiddleware implements NestMiddleware {
+    use(req: Request, res: Response, next: NextFunction) {
+        const reqId = req.headers['flx-request-id'] ?? ulid();
+        req.id = typeof reqId === 'string' ? reqId : reqId[0];
+        res.setHeader('flx-request-id', req.id);
+        req.version = APP_VERSION;
+        next();
+    }
+}
+
+@Injectable()
+export class RequestScopeMiddleware implements NestMiddleware {
+    constructor(private readonly requestContextService: RequestContextService) {}
+    use(req: Request, _: Response, next: NextFunction) {
+        const requestContext = {
+            requestId: typeof req.id === 'string' ? req.id : String(req.id ?? 'unknown'),
+            time: Date.now(),
+            version: req.version,
+        };
+        this.requestContextService.run(requestContext, () => {
+            next();
+        });
+    }
+}
 
 @Injectable()
 export class CorsMiddleware implements NestMiddleware {

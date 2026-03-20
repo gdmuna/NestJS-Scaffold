@@ -1,7 +1,8 @@
+import type { ErrorCode } from './error-catalog.type.js';
+
+import { API_DOCS_BASE_URL, ERROR_CATALOG } from '@/constants/index.js';
+
 import { Injectable } from '@nestjs/common';
-import { ERROR_CATALOG } from '@/modules/error-catalog/error-catalog.constant.js';
-import { ErrorCode } from '@/modules/error-catalog/error-catalog.type.js';
-import { API_DOCS_BASE_URL } from '@/constants/index.js';
 
 /**
  * 获取错误类型 URL

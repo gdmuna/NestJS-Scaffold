@@ -1,5 +1,3 @@
-// 1. 创建请求上下文服务
-// src/common/request-context.service.ts
 import { Injectable } from '@nestjs/common';
 import { AsyncLocalStorage } from 'async_hooks';
 import merge from 'lodash/merge.js';
@@ -11,7 +9,6 @@ export interface RequestContext {
     version?: string;
     time: number;
     metadata?: Record<string, any>;
-    // 其他需要传递的上下文
 }
 
 @Injectable()

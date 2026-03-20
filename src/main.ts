@@ -1,18 +1,15 @@
-import { NestFactory } from '@nestjs/core';
-import { AppModule } from '@/app.module.js';
+import { AppModule } from './app.module.js';
 
-import figlet from 'figlet';
-import { atlas } from 'gradient-string';
+import { APP_VERSION } from '@/constants/index.js';
 
-import compression from 'compression';
-
-import { Logger as pinoLogger } from 'nestjs-pino';
 import { Logger } from '@/common/logger.service.js';
 
+import { NestFactory } from '@nestjs/core';
+import figlet from 'figlet';
+import { atlas } from 'gradient-string';
+import compression from 'compression';
+import { Logger as pinoLogger } from 'nestjs-pino';
 import helmet from 'helmet';
-
-import { APP_VERSION } from '@/app.constant.js';
-
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { cleanupOpenApiDoc } from 'nestjs-zod';
 
@@ -47,6 +44,15 @@ async function bootstrap() {
 3. 杀死占用端口的进程：
     - （Windows）：taskkill /PID <PID> /F （例：taskkill /PID 36396 /F）
     - （Linux/Mac）：kill -9 <PID> （例：kill -9 36396）\x1b[0m`
+            );
+        } else if (err.code === 'EACCES') {
+            logger.fatal(
+                `❌ 启动失败：没有权限绑定到端口 ${port}。
+\x1b[33m请尝试以下方案：
+1. 以管理员身份运行应用程序
+    - （Windows）：以管理员权限运行 PowerShell，然后执行 pnpm start:dev
+2. 使用更高端口号（1024 以上）：修改 .env 文件设置 PORT=8000
+3. 检查防火墙或安全软件是否阻止\x1b[0m`
             );
         }
         app.flushLogs(); // 打印缓冲日志并分离缓冲区

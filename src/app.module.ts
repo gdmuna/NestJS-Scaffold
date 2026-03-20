@@ -1,31 +1,35 @@
-import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
-import { AppController, TestController } from '@/app.controller.js';
-import { AppService } from '@/app.service.js';
-import { DatabaseService } from '@/infra/database/database.service.js';
-import { APP_PIPE, APP_INTERCEPTOR, APP_FILTER, APP_GUARD } from '@nestjs/core';
-import { ZodValidationPipe, ZodSerializerInterceptor } from 'nestjs-zod';
-import { AllExceptionsFilter } from '@/common/filters/all-exceptions.filter.js';
-import {
-    PerformanceInterceptor,
-    ResponseFormatInterceptor,
-    TimeoutInterceptor,
-} from '@/common/interceptors/index.js';
-import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
-import { LoggerModule } from 'nestjs-pino';
-import pino from 'pino';
-import { IS_DEV, IS_PROD } from '@/constants/index.js';
-import { APP_NAME } from '@/app.constant.js';
-import { Logger } from '@/common/logger.service.js';
 import {
     CorsMiddleware,
     RequestPreprocessingMiddleware,
     RequestScopeMiddleware,
-} from '@/common/middleware/index.js';
-import { envValidationSchema } from '@/config/env.validation.js';
-import { AuthGuard } from '@/common/guards/index.js';
-import { ErrorCatalogModule } from '@/modules/index.js';
+} from './app.middleware.js';
+import {
+    PerformanceInterceptor,
+    ResponseFormatInterceptor,
+    TimeoutInterceptor,
+} from './app.interceptor.js';
+import { AppController, TestController } from './app.controller.js';
+import { AppService } from './app.service.js';
+import { AllExceptionsFilter } from './app.filter.js';
+
+import { ErrorCatalogModule, AuthModule } from '@/modules/index.js';
+
+import { envValidationSchema } from '@/config/index.js';
+
+import { IS_DEV, IS_PROD, APP_NAME } from '@/constants/index.js';
+
+import { DatabaseService } from '@/infra/database/database.service.js';
+
+import { Logger } from '@/common/logger.service.js';
 import { RequestContextService } from '@/common/request-context.service.js';
+
+import { Module, MiddlewareConsumer, NestModule } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
+import { APP_PIPE, APP_INTERCEPTOR, APP_FILTER, APP_GUARD } from '@nestjs/core';
+import { ZodValidationPipe, ZodSerializerInterceptor } from 'nestjs-zod';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { LoggerModule } from 'nestjs-pino';
+import pino from 'pino';
 
 @Module({
     imports: [
@@ -82,16 +86,13 @@ import { RequestContextService } from '@/common/request-context.service.js';
             ],
         }),
         ErrorCatalogModule,
+        AuthModule,
     ],
     controllers: [AppController, TestController],
     providers: [
         {
             provide: APP_GUARD,
             useClass: ThrottlerGuard,
-        },
-        {
-            provide: APP_GUARD,
-            useClass: AuthGuard,
         },
         {
             provide: APP_INTERCEPTOR,

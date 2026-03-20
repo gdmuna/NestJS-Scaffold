@@ -1,8 +1,11 @@
+import { ErrorCatalogService } from './error-catalog.service.js';
+
+import { ERROR_CATALOG } from '@/constants/index.js';
+
+import { Public } from '@/common/decorators/index.js';
+
 import { Controller, Get, Param, Res, HttpStatus } from '@nestjs/common';
 import type { Response } from 'express';
-import { Public } from '@/common/decorators/auth.decorator.js';
-import { ERROR_CATALOG } from '@/modules/error-catalog/error-catalog.constant.js';
-import { ErrorCatalogService } from '@/modules/error-catalog/error-catalog.service.js';
 
 @Controller('errors')
 @Public()
@@ -10,7 +13,6 @@ export class ErrorCatalogController {
     constructor(private readonly errorCatalogService: ErrorCatalogService) {}
 
     @Get()
-    @Public()
     getAllErrors() {
         const errors = Object.entries(ERROR_CATALOG).map(([key, metadata]) => ({
             code: metadata.code,
@@ -24,7 +26,6 @@ export class ErrorCatalogController {
     }
 
     @Get(':errorCode')
-    @Public()
     getErrorDetail(
         @Param('errorCode') errorCode: string,
         @Res({ passthrough: true }) res: Response

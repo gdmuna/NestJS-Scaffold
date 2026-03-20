@@ -1,7 +1,19 @@
-import { Injectable, NestInterceptor, ExecutionContext, CallHandler } from '@nestjs/common';
-import { Logger } from '@/common/logger.service.js';
-import { Request, Response } from 'express';
 import { SLOW_REQUEST_THRESHOLDS } from '@/constants/index.js';
+
+import { Logger } from '@/common/logger.service.js';
+import { RequestContextService } from '@/common/request-context.service.js';
+
+import {
+    Injectable,
+    NestInterceptor,
+    ExecutionContext,
+    CallHandler,
+    RequestTimeoutException,
+} from '@nestjs/common';
+import { Request, Response } from 'express';
+import { map } from 'rxjs/operators';
+import { throwError, TimeoutError } from 'rxjs';
+import { catchError, timeout } from 'rxjs/operators';
 
 /**
  * @description 性能监控拦截器
@@ -73,5 +85,50 @@ export class PerformanceInterceptor implements NestInterceptor {
             // 正常快速请求：debug 级别
             this.logger.debug(logContext, `[${method}](${url}) Request completed (${duration}ms)`);
         }
+    }
+}
+
+@Injectable()
+export class ResponseFormatInterceptor implements NestInterceptor {
+    constructor(private readonly requestContextService: RequestContextService) {}
+
+    intercept(_: ExecutionContext, next: CallHandler) {
+        return next.handle().pipe(
+            map((data) => {
+                const requestContext = this.requestContextService.get() ?? null;
+                return {
+                    success: true,
+                    data: data ?? null,
+                    timestamp: new Date().toISOString(),
+                    context: requestContext,
+                };
+            })
+        );
+    }
+}
+/**
+ * @description 请求超时拦截器
+ * - 限制请求处理时间不超过配置的阈值
+ */
+@Injectable()
+export class TimeoutInterceptor implements NestInterceptor {
+    private readonly timeoutMs = parseInt(process.env.REQUEST_TIMEOUT_MS || '30000'); // 默认 30 秒
+
+    intercept(_: ExecutionContext, next: CallHandler) {
+        return next.handle().pipe(
+            timeout(this.timeoutMs),
+            catchError((err) => {
+                if (err instanceof TimeoutError) {
+                    return throwError(
+                        () =>
+                            new RequestTimeoutException({
+                                message: `Request timed out after ${this.timeoutMs}ms`,
+                                code: 'REQUEST_TIMEOUT',
+                            })
+                    );
+                }
+                return throwError(() => err);
+            })
+        );
     }
 }

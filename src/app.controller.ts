@@ -1,12 +1,13 @@
-import { Controller, Get } from '@nestjs/common';
-import { AppService } from '@/app.service.js';
-import { Body, Post, HttpStatus, HttpException } from '@nestjs/common';
-import { BusinessException } from '@/common/exceptions/business.exception.js';
-import { LoginDto } from '@/app.dto.js';
-import { Logger } from '@/common/logger.service.js';
-import { PinoLogger } from 'nestjs-pino';
+import { AppService } from './app.service.js';
+
 import { DatabaseService } from '@/infra/database/database.service.js';
-import { Public } from '@/common/decorators/auth.decorator.js';
+
+import { Public } from '@/common/decorators/index.js';
+import { Logger } from '@/common/logger.service.js';
+
+import { Controller, Get } from '@nestjs/common';
+import { Body, Post, HttpStatus, HttpException } from '@nestjs/common';
+import { PinoLogger } from 'nestjs-pino';
 
 @Controller()
 export class AppController {
@@ -16,23 +17,6 @@ export class AppController {
     @Get('health')
     getHealth() {
         return this.appService.getHealth();
-    }
-
-    @Post('login')
-    login(@Body() body: LoginDto) {
-        // 模拟登录逻辑，实际应用中应验证用户名和密码
-        if (body.username === 'admin' && body.password === 'password') {
-            return {
-                message: 'Login successful',
-                token: 'fake-jwt-token',
-            };
-        } else {
-            throw new BusinessException(
-                'Invalid username or password',
-                'AUTH_FAILED',
-                HttpStatus.UNAUTHORIZED
-            );
-        }
     }
 
     @Post('/change-logging-level')
@@ -48,7 +32,7 @@ export class TestController {
     private readonly logger = new Logger(TestController.name);
     constructor(
         private readonly appService: AppService,
-        private readonly prisma: DatabaseService
+        private readonly databaseService: DatabaseService
     ) {}
 
     @Get('hello-world')
@@ -95,7 +79,7 @@ export class TestController {
     async slowQuery() {
         try {
             // 执行一个耗时 200ms 的查询，pg_sleep 在 WHERE 子句中执行避免返回 void
-            await this.prisma.$queryRaw`
+            await this.databaseService.$queryRaw`
                 SELECT 1
                 WHERE pg_sleep(0.2) IS NULL OR true
             `;
@@ -117,7 +101,7 @@ export class TestController {
     async verySlowQuery() {
         try {
             // 执行一个耗时 600ms 的查询
-            const result = await this.prisma.$queryRaw<Array<{ result: number }>>`
+            const result = await this.databaseService.$queryRaw<Array<{ result: number }>>`
                 SELECT 1 as result
                 WHERE pg_sleep(0.6) IS NULL OR true
             `;

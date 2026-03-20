@@ -1,5 +1,6 @@
+import { APP_NAME } from '@/constants/index.js';
+
 import os from 'os';
-import { APP_NAME } from '@/app.constant.js';
 
 type Message = string | Error | Record<string, any>;
 

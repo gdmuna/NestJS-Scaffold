@@ -1,17 +1,15 @@
-import { BusinessException } from '@/common/exceptions/business.exception.js';
+import { ErrorCatalogService } from '@/modules/error-catalog/error-catalog.service.js';
+
+import { BusinessException } from '@/common/exceptions/index.js';
+import { Logger } from '@/common/logger.service.js';
+import { RequestContextService } from '@/common/request-context.service.js';
+
 import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus } from '@nestjs/common';
-import { Request as originRequest, Response } from 'express';
+import { Request, Response } from 'express';
 import { PrismaClientKnownRequestError } from '@root/prisma/generated/internal/prismaNamespace.js';
 import { ZodValidationException, ZodSerializationException } from 'nestjs-zod';
 import { ZodError } from 'zod/v4';
 import { ThrottlerException } from '@nestjs/throttler';
-import { Logger } from '@/common/logger.service.js';
-import { ErrorCatalogService } from '@/modules/error-catalog/error-catalog.service.js';
-import { RequestContextService } from '@/common/request-context.service.js';
-
-interface Request extends originRequest {
-    user?: any;
-}
 
 /**
  * @description: 全局异常过滤器，捕获所有未处理的异常并返回统一格式的错误响应
