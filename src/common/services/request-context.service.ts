@@ -40,7 +40,7 @@ export interface RequestContext {
  */
 @Injectable()
 export class RequestContextService {
-    /** 用于存储和隔离异步上下文的 AsyncLocalStorage 实例 */
+    /** AsyncLocalStorage 实例，用于存储和隔离异步上下文 */
     private asyncLocalStorage = new AsyncLocalStorage<RequestContext>();
 
     /**
@@ -55,7 +55,7 @@ export class RequestContextService {
      * @example
      * this.contextService.run(
      *   { requestId: '123', time: Date.now() },
-     *   () => this.next()
+     *   () => next()
      * );
      */
     run(context: RequestContext, callback: () => void) {
@@ -83,10 +83,10 @@ export class RequestContextService {
     /**
      * 合并新的元数据到当前请求上下文的 metadata 字段。
      *
-     * 使用 lodash merge 进行深合并，允许部分更新元数据而不覆盖整个对象。
-     * 如果当前不存在上下文，该方法会静默返回（不抛出错误）。
+     * 使用深合并允许部分更新，支持嵌套对象更新。
      *
      * @param metadata - 要合并的元数据对象
+     * @returns 成功合并返回 true，不存在上下文返回 false
      *
      * @example
      * // 添加响应时间和缓存信息
@@ -98,7 +98,8 @@ export class RequestContextService {
      */
     mergeContextMetadata(metadata: Record<string, any>) {
         const context = this.asyncLocalStorage.getStore();
-        if (!context) return;
+        if (!context) return false;
         context.metadata = merge(context.metadata, metadata);
+        return true;
     }
 }

@@ -1,6 +1,6 @@
 generator client {
-  provider = "prisma-client"
-  output   = "./generated"
+  provider     = "prisma-client"
+  output       = "./generated"
   moduleFormat = "cjs"
 }
 
@@ -9,13 +9,12 @@ datasource db {
 }
 
 model User {
-  id             String         @id @default(cuid())
-  username       String         @unique
-  email          String         @unique
-  passwordHash   String
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
+  id           String   @id @default(ulid())
+  username     String   @unique
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  @@index([username])
-  @@index([email])
+  @@index([createdAt])
 }

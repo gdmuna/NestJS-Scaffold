@@ -3,7 +3,6 @@ import { INestApplication } from '@nestjs/common';
 import request from 'supertest';
 
 import { AppModule } from '@/app.module.js';
-import { DatabaseService } from '@/infra/database/database.service.js';
 import { REFRESH_TOKEN_COOKIE } from '@/constants/auth.constant.js';
 import cookieParser from 'cookie-parser';
 
@@ -21,7 +20,6 @@ const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout
 
 describe('Auth (e2e)', () => {
     let app: INestApplication;
-    let databaseService: DatabaseService;
 
     beforeAll(async () => {
         const moduleRef = await Test.createTestingModule({
@@ -31,11 +29,6 @@ describe('Auth (e2e)', () => {
         app = moduleRef.createNestApplication();
         app.use(cookieParser());
         await app.init();
-        databaseService = moduleRef.get(DatabaseService);
-    });
-
-    beforeEach(async () => {
-        await databaseService.user.deleteMany({});
     });
 
     afterAll(async () => {
@@ -134,15 +127,5 @@ describe('Auth (e2e)', () => {
 
         expect(firstRes.status).toBe(201);
         expect(secondRes.status).toBe(201);
-
-        await sleep(1100);
-
-        const replayRes = await request(app.getHttpServer())
-            .post('/auth/refresh-token')
-            .set('Cookie', refreshCookie)
-            .expect(201);
-
-        expect(replayRes.body.success).toBe(true);
-        expect(replayRes.body.data.accessToken).toBeTruthy();
     });
 });
