@@ -2,8 +2,10 @@
  * 加密和哈希工具 - UUID生成、哈希、密码等。
  * 注意：密码哈希建议使用 bcrypt/argon2 等专业库。
  */
+import { generateRandomInt } from '../operations/number.operation.js';
 
 import { randomBytes, createHash } from 'crypto';
+import bcrypt from 'bcryptjs';
 
 /**
  * 生成随机的十六进制字符串。
@@ -21,6 +23,17 @@ export function generateRandomHex(length: number = 16): string {
 }
 
 /**
+ * 计算字符串的 SHA-1 哈希值（已过时，仅用于兼容性）。
+ *
+ * @deprecated 使用 hashSHA256 或 hashSHA512 代替
+ * @param value - 待哈希的字符串
+ * @returns 十六进制哈希值
+ */
+export function hashSHA1(value: string): string {
+    return createHash('sha1').update(value).digest('hex');
+}
+
+/**
  * 计算字符串的 SHA-256 哈希值。
  *
  * @param value - 待哈希的字符串
@@ -31,17 +44,6 @@ export function generateRandomHex(length: number = 16): string {
  */
 export function hashSHA256(value: string): string {
     return createHash('sha256').update(value).digest('hex');
-}
-
-/**
- * 计算字符串的 SHA-1 哈希值（已过时，仅用于兼容性）。
- *
- * @deprecated 使用 hashSHA256 或 hashSHA512 代替
- * @param value - 待哈希的字符串
- * @returns 十六进制哈希值
- */
-export function hashSHA1(value: string): string {
-    return createHash('sha1').update(value).digest('hex');
 }
 
 /**
@@ -64,27 +66,6 @@ export function hashSHA512(value: string): string {
  */
 export function hashMD5(value: string): string {
     return createHash('md5').update(value).digest('hex');
-}
-
-/**
- * 使用盐生成哈希值（简单实现）。
- * 用于密码相关场合，但建议用 bcrypt/argon2 替代此函数。
- *
- * @param value - 待哈希的值
- * @param salt - 盐值（如果不提供，将随机生成）
- * @returns { hash: 哈希值, salt: 使用的盐值 }
- *
- * @example
- * const { hash, salt } = hashWithSalt('password123');
- * // 用户表存储 hash 和 salt
- * // 验证时：hashWithSalt('inputPassword', salt).hash === storedHash
- *
- * @warning 此实现仅用于演示，生产环境应使用 bcrypt 或 argon2
- */
-export function hashWithSalt(value: string, salt?: string): { hash: string; salt: string } {
-    const usedSalt = salt || generateRandomHex(16);
-    const hash = hashSHA256(value + usedSalt);
-    return { hash, salt: usedSalt };
 }
 
 /**
@@ -190,4 +171,43 @@ export function verifyLuhn(value: string): boolean {
 
     const checksum = luhnChecksum(value.slice(0, -1));
     return checksum === parseInt(value[value.length - 1], 10);
+}
+
+/**
+ * 生成指定数量的密码和哈希对。
+ * 若未提供密码，会自动生成 8-128 字符的随机密码。
+ *
+ * @param count - 要生成的密码哈希对数量，默认 1
+ * @param options - 可选配置
+ * @param options.password - 固定密码。若省略则自动生成随机密码
+ * @param options.salt - bcrypt salt 轮次（1-31）或已生成的 salt。默认 10
+ * @returns 包含 password 和 hash 的对象数组
+ *
+ * @example
+ * // 生成 10 个随机密码的哈希
+ * const hashes = await generatePasswordHash(10);
+ *
+ * // 生成 5 个固定密码 "secret123" 的哈希（cost=12）
+ * const hashes = await generatePasswordHash(5, {
+ *   password: 'secret123',
+ *   salt: 12
+ * });
+ */
+export async function generatePasswordHash(
+    count: number = 1,
+    options?: {
+        password?: string;
+        salt?: number | string;
+    }
+): Promise<{ password: string; hash: string }[]> {
+    const tasks: Promise<any>[] = [];
+    for (let i = 0; i < count; i++) {
+        const task = (async () => {
+            const password = options?.password ?? generateRandomString(generateRandomInt(8, 128));
+            const hash = await bcrypt.hash(password, options?.salt ?? 10);
+            return { password, hash };
+        })();
+        tasks.push(task);
+    }
+    return await Promise.all(tasks);
 }

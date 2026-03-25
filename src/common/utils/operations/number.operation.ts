@@ -58,3 +58,28 @@ export function toSafeInt(value: unknown, fallback = 0): number {
     if (!Number.isFinite(num)) return fallback;
     return Math.trunc(num);
 }
+
+/**
+ * 生成指定范围 [min, max] 内的随机整数（含边界）。
+ *
+ * @param min - 范围的最小值，默认 -Number.MAX_SAFE_INTEGER
+ * @param max - 范围的最大值，默认 Number.MAX_SAFE_INTEGER
+ * @returns 范围内的随机整数。若 min > max 则返回 min
+ *
+ * @example
+ * generateRandomInt()           // [-9007199254740991, 9007199254740991] 之间的随机整数
+ * generateRandomInt(1, 10)      // [1, 10] 之间的随机整数
+ * generateRandomInt(0, 100)     // [0, 100] 之间的随机整数
+ * generateRandomInt(50, 20)     // 20（min > max，返回 min）
+ */
+export function generateRandomInt(
+    min: number = -Number.MAX_SAFE_INTEGER,
+    max: number = Number.MAX_SAFE_INTEGER
+) {
+    if (!Number.isFinite(min) || !Number.isFinite(max)) {
+        min = -Number.MAX_SAFE_INTEGER;
+        max = Number.MAX_SAFE_INTEGER;
+    }
+    if (min > max) return min;
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}

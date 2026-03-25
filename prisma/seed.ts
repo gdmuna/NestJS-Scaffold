@@ -1,10 +1,10 @@
 import { PrismaClient } from './generated/client.js';
 
 // import { DATABASE_URL } from '@/constants/index.js';
+import { generatePasswordHash } from '@/common/utils/index.js';
 
 import { parseArgs } from 'node:util';
 import { PrismaPg } from '@prisma/adapter-pg';
-import bcrypt from 'bcryptjs';
 
 const adapter = new PrismaPg({
     connectionString: process.env.DATABASE_URL,
@@ -20,22 +20,37 @@ const options = {
     environment: { type: 'string' },
 } as const;
 
+// 生成开发环境的测试数据
 async function _seedForDevelopment() {
+    const passwordHashes = await generatePasswordHash(10, {
+        password: 'password',
+        salt: 10,
+    });
     const tasks: Promise<any>[] = [];
     for (let i = 0; i < 10; i++) {
         tasks.push(
-            prisma.user.create({
-                data: {
-                    username: `user${i}`,
-                    email: `user${i}@example.com`,
-                    passwordHash: await bcrypt.hash('password', 10),
-                },
-            })
+            prisma.user
+                .create({
+                    data: {
+                        username: `user${i}`,
+                        email: `user${i}@example.com`,
+                        passwordHash: passwordHashes[i].hash,
+                    },
+                })
+                .then((user) => {
+                    const info = {
+                        username: user.username,
+                        email: user.email,
+                        password: passwordHashes[i].password,
+                    };
+                    console.log(`创建用户：`, JSON.stringify(info, null, 2));
+                })
         );
     }
     await Promise.all(tasks);
 }
 
+// 主函数，根据环境变量执行不同的数据填充逻辑
 async function main() {
     const {
         values: { environment = 'development' },
