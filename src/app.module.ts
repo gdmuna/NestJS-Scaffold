@@ -14,7 +14,7 @@ import { AllExceptionsFilter } from './app.filter.js';
 
 import { ErrorCatalogModule, AuthModule } from '@/modules/index.js';
 
-import { envValidationSchema } from '@/config/index.js';
+import { envSchema } from '@/common/utils/index.js';
 
 import { IS_DEV, IS_PROD, APP_NAME } from '@/constants/index.js';
 
@@ -35,7 +35,7 @@ import pino from 'pino';
     imports: [
         ConfigModule.forRoot({
             isGlobal: true,
-            validate: (config) => envValidationSchema.parse(config),
+            validate: (config) => envSchema.parse(config),
         }),
         ThrottlerModule.forRoot([
             {
