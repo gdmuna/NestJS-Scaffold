@@ -8,6 +8,7 @@ env:
   DOCKER_USERNAME: ${{ vars.DOCKER_USERNAME || github.repository_owner }}
   DOCKER_REPO_NAME: ${{ vars.DOCKER_REPO_NAME || github.event.repository.name }}
   DATABASE_URL: ${{ secrets.DEV_DB_URL }}
+  SHADOW_DATABASE_URL: ${{ 'postgresql://username:password@host:port/dbName?schema=public' }}
   BACKEND_CONTAINER_PORT: ${{ vars.DEV_BACKEND_CONTAINER_PORT || 3000 }}
   BACKEND_HOST_PORT: ${{ vars.DEV_BACKEND_HOST_PORT || 3000 }}
 
