@@ -5,6 +5,75 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.6.0] - 2026-03-27
+
+### ⚠️ 破坏性变更
+
+- **JWT 签名算法迁移**：从 RS256 切换至 ES256，密钥文件须存放于 `config/keys/`（`jwt-private.pem` / `jwt-public.pem`），旧 RS256 密钥不再兼容
+
+### ✨ 新功能
+
+#### 认证系统（JWT + Cookie）
+
+- **完整 JWT 认证流程**：实现 Access Token 签发/验证、Refresh Token Cookie 轮转机制
+- **认证守卫**：`AuthGuard` 接管路由保护，统一鉴权逻辑
+- **IAM 边界划定**：搭建 Auth 模块骨架，明确 IAM 集成接入点
+
+#### 访问频率限制
+
+- **分层限流策略**：基于 `@nestjs/throttler`，支持按路由粒度配置请求速率上限
+
+#### 基础设施
+
+- **加密环境变量**：集成 `dotenvx`，支持 `.env` 文件加密存储敏感配置
+- **Prisma 数据层**：添加 seed 配置与初始数据填充脚本
+
+#### 开发体验
+
+- **OpenAPI/Swagger 文档**：自动生成 API 文档，访问路径 `/api-doc`
+- **CORS 中间件**：细粒度跨域配置，支持多来源白名单
+- **密码哈希工具**：`bcrypt` 封装 + 密码校验；密码学安全随机整数生成
+
+### ♻️ 重构
+
+#### 架构层级整理
+
+- **应用结构重组**：`infra/`、`modules/`、`common/` 三层边界明确划分
+- **公共服务目录**：将共享服务迁移至 `src/common/services/` 独立子目录
+- **工具函数重组**：`utils/` 按 `helpers/`、`formatters/`、`validators/`、`errors/` 分类，移除旧 `src/utils/`
+
+#### 配置与环境
+
+- **环境变量 schema 集中化**：Zod 校验 schema 提取至 `src/common/utils/validation-schema.ts`
+- **环境特定 `.env` 加载**：按 `NODE_ENV` 自动选择对应 `.env.*` 文件
+
+#### 请求上下文与响应
+
+- **Request Context API 更新**：`RequestContextService` 接口对齐新字段结构
+- **响应 metadata 自动化**：统一注入 `requestId`、`version` 至响应上下文
+- **错误文档自动化**：错误码目录接入自动路由注册
+
+#### 认证
+
+- **ES256 密钥加载**：改为从文件系统读取 PEM 密钥，移除环境变量内联密钥做法
+
+### 🐛 修复
+
+- **`fix(types)`**：统一 Express Request 类型扩展，收紧 `jwtClaim` 类型定义，防止运行时字段访问错误
+- **`fix(utils)`**：修复取模偏差（modulo bias）导致的随机分布不均问题；修复原型污染（prototype pollution）漏洞
+
+### 🔧 构建 / CI
+
+- **Docker 镜像优化**：精简多阶段构建，按环境分离依赖安装与 env 加载逻辑
+- **依赖升级**：全量更新至最新兼容版本，`package.json` 版本号升至 `0.6.0`
+- **CI/CD 流水线**：更新 GitHub Actions workflow，对齐新环境变量注入方式
+
+### 📚 文档
+
+- **AGENTS.md 体系**：引入 AI 协助者操作手册及结构化文档层级（`docs/` 多级 STANDARD）
+
+---
+
 ## [0.5.3] - 2026-02-16
 
 ### ♻️ 重构
