@@ -1,5 +1,5 @@
 # ===== 构建阶段 =====
-FROM node:22-slim AS builder
+FROM node:22.22-slim AS builder
 
 # 安装依赖和 OpenSSL (Prisma 需要)
 RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
@@ -46,7 +46,7 @@ RUN pnpm build
 RUN pnpm prune --prod --ignore-scripts
 
 # ===== 运行阶段 =====
-FROM node:22-slim AS runner
+FROM node:22.22-slim AS runner
 
 # 设置工作目录
 WORKDIR /app
