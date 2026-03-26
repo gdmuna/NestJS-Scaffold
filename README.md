@@ -1,3 +1,6 @@
+> [!Warning]
+> 此仓库目前处于快速迭代期，README 文档可能与实际代码存在不一致。一切内容以具体实现为准，相关文档会在后续版本中逐步完善。
+
 <div align="center">
 
 <h1>NestJS Demo Basic</h1>
