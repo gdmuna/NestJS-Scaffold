@@ -108,6 +108,7 @@ flowchart TD
 | 文档 | 核心问题 |
 |------|---------|
 | [request-pipeline.md](request-pipeline.md) | HTTP 请求经历哪些阶段？各阶段详细逻辑？ |
+| [exception-system.md](exception-system.md) | 异常系统如何设计？|
 | [auth-module.md](auth-module.md) | 双令牌策略如何工作？JWT 如何签发与验证？ |
 | [database.md](database.md) | 连接池如何配置？查询如何监控与脱敏？ |
 | [observability.md](observability.md) | 日志、追踪、告警如何串联？ |
