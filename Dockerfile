@@ -10,8 +10,8 @@ RUN npm install -g pnpm
 # 设置工作目录
 WORKDIR /app
 
-# 复制 package.json
-COPY package.json ./
+# 复制 package.json 和 pnpm 配置文件
+COPY package.json .npmrc ./
 
 # 若仓库中存在 pnpm-lock.yaml，且你想保证依赖版本一致、构建可复现，请取消下一行的注释
 # COPY pnpm-lock.yaml ./
@@ -26,7 +26,7 @@ RUN pnpm install --no-frozen-lockfile --ignore-scripts
 
 # ========== 安装所有依赖 (构建阶段需要 devDependencies 中的 TypeScript 和类型定义) ==========
 
-# 复制源代码
+# 复制源代码和配置文件
 COPY src ./src
 COPY tsconfig.json tsconfig.build.json nest-cli.json prisma.config.ts ./
 COPY prisma ./prisma
