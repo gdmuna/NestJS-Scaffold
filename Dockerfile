@@ -30,6 +30,7 @@ RUN pnpm install --no-frozen-lockfile --ignore-scripts
 COPY src ./src
 COPY tsconfig.json tsconfig.build.json nest-cli.json prisma.config.ts ./
 COPY prisma ./prisma
+COPY config ./config
 
 # 数据库URL占位符，你不应在构建镜像时使用真实的数据库URL
 # 但需要一个占位符以便生成Prisma Client，且该占位符所使用的数据库类型应与实际运行时相同
