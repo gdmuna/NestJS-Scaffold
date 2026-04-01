@@ -1,6 +1,6 @@
 import { AuthGuard } from '@/modules/auth/auth.guard.js';
 
-import { loadEnv } from '@/constants/index.js';
+import { loadEnv } from '@/common/utils/index.js';
 
 loadEnv('test', { quiet: true });
 

@@ -1,6 +1,6 @@
 import { AppModule } from '@/app.module.js';
 
-import { loadEnv } from '@/constants/index.js';
+import { loadEnv } from '@/common/utils/index.js';
 
 import { Test } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';

@@ -1,5 +1,3 @@
-import { APP_VERSION } from '@/constants/index.js';
-
 import { DatabaseService } from '@/infra/database/database.service.js';
 
 import { Logger, RequestContextService } from '@/common/services/index.js';
@@ -7,13 +5,14 @@ import { Logger, RequestContextService } from '@/common/services/index.js';
 import { Injectable } from '@nestjs/common';
 import { uptime } from 'node:process';
 import { ConfigService } from '@nestjs/config';
+import { AllConfig } from '@root/config/app.config.js';
 
 @Injectable()
 export class AppService {
     private readonly logger = new Logger(AppService.name);
     constructor(
         private readonly databaseService: DatabaseService,
-        private readonly configService: ConfigService,
+        private readonly configService: ConfigService<AllConfig, true>,
         private readonly requestContextService: RequestContextService
     ) {}
 
@@ -34,8 +33,8 @@ export class AppService {
         return {
             status: 'ok',
             uptime: uptime(),
-            version: APP_VERSION,
-            gitCommit: this.configService.get('GIT_COMMIT', 'N/A'),
+            version: this.configService.get('app.appVersion', { infer: true }),
+            gitCommit: this.configService.get('app.gitCommit', { infer: true }),
             components: {
                 database: {
                     ...databaseHealth,

@@ -1,8 +1,11 @@
 import type { ErrorCode } from './error-catalog.type.js';
 
-import { API_DOCS_BASE_URL, ERROR_CATALOG } from '@/constants/index.js';
+import { ERROR_CATALOG } from '@/constants/error-catalog.constant.js';
+
+import { AllConfig } from '@root/config/app.config.js';
 
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 
 /**
  * 获取错误类型 URL
@@ -10,8 +13,10 @@ import { Injectable } from '@nestjs/common';
  */
 @Injectable()
 export class ErrorCatalogService {
-    private readonly baseUrl = API_DOCS_BASE_URL;
-    constructor() {}
+    private readonly baseUrl: string;
+    constructor(private readonly configService: ConfigService<AllConfig, true>) {
+        this.baseUrl = this.configService.get('observability.apiDocsBaseUrl', { infer: true });
+    }
 
     /**
      * 生成错误类型的完整 URL

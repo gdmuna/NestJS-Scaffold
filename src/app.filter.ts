@@ -86,7 +86,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
         if (exception instanceof BusinessException) {
             const response: any = exception.getResponse();
             return {
-                message: exception.message ?? 'Business Exception',
+                message: response.message ?? 'Business Exception',
                 code:
                     typeof response === 'string'
                         ? response
@@ -123,8 +123,9 @@ export class AllExceptionsFilter implements ExceptionFilter {
         }
 
         if (exception instanceof ThrottlerException) {
+            const response: any = exception.getResponse();
             return {
-                message: exception.message ?? 'Too Many Requests',
+                message: response.message ?? 'Too Many Requests',
                 code: 'TOO_MANY_REQUESTS',
                 status: HttpStatus.TOO_MANY_REQUESTS,
             };
@@ -137,7 +138,7 @@ export class AllExceptionsFilter implements ExceptionFilter {
                 message:
                     typeof response === 'string'
                         ? response
-                        : (exception.message ?? 'HTTP Exception'),
+                        : (response.message ?? 'HTTP Exception'),
                 code: response.code ?? 'HTTP_EXCEPTION',
                 status: exception.getStatus(),
                 details: typeof response === 'object' ? (response as any).details : undefined,

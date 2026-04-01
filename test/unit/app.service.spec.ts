@@ -1,14 +1,15 @@
 import { AppService } from '@/app.service.js';
 
-import { loadEnv } from '@/constants/index.js';
+import { loadEnv } from '@/common/utils/index.js';
 
 import { RequestContextService } from '@/common/services/index.js';
 
 import { DatabaseService } from '@/infra/database/database.service.js';
 
-import { ConfigService } from '@nestjs/config';
+import { ConfigModule } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
 import { PinoLogger } from 'nestjs-pino';
+import allConfig from '@root/config/app.config.js';
 
 loadEnv('test', { quiet: true });
 
@@ -28,10 +29,15 @@ describe('AppService', () => {
 
     beforeEach(async () => {
         module = await Test.createTestingModule({
+            imports: [
+                ConfigModule.forRoot({
+                    isGlobal: true,
+                    load: allConfig,
+                }),
+            ],
             providers: [
                 AppService,
                 DatabaseService,
-                ConfigService,
                 RequestContextService,
                 {
                     provide: PinoLogger,

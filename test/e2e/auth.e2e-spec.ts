@@ -1,6 +1,8 @@
 import { AppModule } from '@/app.module.js';
 
-import { REFRESH_TOKEN_COOKIE, loadEnv } from '@/constants/index.js';
+import { loadEnv } from '@/common/utils/index.js';
+
+import { REFRESH_TOKEN_COOKIE } from '@root/config/app.config.js';
 
 import { Test } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';

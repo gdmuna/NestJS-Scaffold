@@ -1,10 +1,10 @@
-import { PrismaClient } from '@root/prisma/generated/client.js';
-
-import { SLOW_QUERY_THRESHOLDS } from '@/constants/index.js';
-
 import { Logger, RequestContextService } from '@/common/services/index.js';
 
+import { PrismaClient } from '@root/prisma/generated/client.js';
+import { AllConfig } from '@root/config/app.config.js';
+
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PrismaPg } from '@prisma/adapter-pg';
 
 /**
@@ -17,8 +17,11 @@ import { PrismaPg } from '@prisma/adapter-pg';
 export class DatabaseService extends PrismaClient implements OnModuleDestroy, OnModuleInit {
     private readonly logger = new Logger(DatabaseService.name);
 
-    constructor(private readonly requestContextService: RequestContextService) {
-        const DATABASE_URL = process.env.DATABASE_URL;
+    constructor(
+        private readonly configService: ConfigService<AllConfig, true>,
+        private readonly requestContextService: RequestContextService
+    ) {
+        const DATABASE_URL = configService.get('database.databaseUrl', { infer: true });
         if (!DATABASE_URL) {
             throw new Error('DATABASE_URL environment variable is not set');
         }
@@ -122,15 +125,18 @@ export class DatabaseService extends PrismaClient implements OnModuleDestroy, On
                 params: this.sanitizeParams(parsedParams),
             },
         };
+        const slowQueryThreshold = this.configService.get('observability.slowQueryThreshold', {
+            infer: true,
+        });
 
         // 根据查询耗时选择日志级别
-        if (duration >= SLOW_QUERY_THRESHOLDS.error) {
+        if (duration >= slowQueryThreshold.error) {
             // 超过 500ms：error 级别
             this.logger.error(
                 logContext,
                 `Critical slow query (${duration}ms)\n${this.formatSql(query)}`
             );
-        } else if (duration >= SLOW_QUERY_THRESHOLDS.warn) {
+        } else if (duration >= slowQueryThreshold.warn) {
             // 超过 100ms：warn 级别
             this.logger.warn(logContext, `Slow query (${duration}ms)\n${this.formatSql(query)}`);
         } else {

@@ -1,4 +1,4 @@
-import { APP_NAME } from '@/constants/index.js';
+import { APP_NAME } from '@root/config/app.config.js';
 
 import os from 'os';
 

@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
-
-import { JWT_ACCESS_TOKEN, JWT_REFRESH_TOKEN } from '@/constants/index.js';
+import { ConfigService } from '@nestjs/config';
+import { AllConfig } from '@root/config/app.config.js';
 
 import { User } from '@root/prisma/generated/client.js';
 
@@ -33,7 +33,7 @@ export interface TokenPair {
 
 @Injectable()
 export class TokenService {
-    constructor() {}
+    constructor(private readonly configService: ConfigService<AllConfig, true>) {}
 
     /**
      * 校验并解析 JWT，同时校验 tokenType 是否匹配预期。
@@ -49,9 +49,11 @@ export class TokenService {
     verifyToken(token: string, expectedTokenType: TokenType) {
         try {
             const tokenConfig =
-                expectedTokenType === 'access' ? JWT_ACCESS_TOKEN : JWT_REFRESH_TOKEN;
-            const decoded = jwt.verify(token, tokenConfig.PUBLIC_KEY, {
-                algorithms: [tokenConfig.ALGORITHM],
+                expectedTokenType === 'access'
+                    ? this.configService.get('auth.accessToken', { infer: true })
+                    : this.configService.get('auth.refreshToken', { infer: true });
+            const decoded = jwt.verify(token, tokenConfig.publicKey, {
+                algorithms: [tokenConfig.algorithm],
             });
 
             if (typeof decoded === 'string') {
@@ -111,7 +113,10 @@ export class TokenService {
      * });
      */
     private signToken(payload: { userId: string; username: string; tokenType: TokenType }): string {
-        const tokenConfig = payload.tokenType === 'access' ? JWT_ACCESS_TOKEN : JWT_REFRESH_TOKEN;
+        const tokenConfig =
+            payload.tokenType === 'access'
+                ? this.configService.get('auth.accessToken', { infer: true })
+                : this.configService.get('auth.refreshToken', { infer: true });
 
         return jwt.sign(
             {
@@ -119,10 +124,10 @@ export class TokenService {
                 jti: ulid(),
                 tokenType: payload.tokenType,
             },
-            tokenConfig.PRIVATE_KEY,
+            tokenConfig.privateKey,
             {
-                algorithm: tokenConfig.ALGORITHM,
-                expiresIn: tokenConfig.EXPIRES_IN as SignOptions['expiresIn'],
+                algorithm: tokenConfig.algorithm,
+                expiresIn: tokenConfig.expiresIn as SignOptions['expiresIn'],
             }
         );
     }

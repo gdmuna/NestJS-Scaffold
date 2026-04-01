@@ -1,6 +1,6 @@
-import { AppModule } from './app.module.js';
+import { APP_VERSION } from '@root/config/app.config.js';
 
-import { APP_VERSION, loadEnv } from '@/constants/index.js';
+import { AppModule } from './app.module.js';
 
 import { Logger } from '@/common/services/index.js';
 
@@ -16,7 +16,6 @@ import cookieParser from 'cookie-parser';
 import { relative } from 'path';
 
 async function bootstrap() {
-    loadEnv(process.env.NODE_ENV);
     const envFilePath = relative(process.cwd(), `.env.${process.env.NODE_ENV}`);
     // eslint-disable-next-line no-console
     console.log('加载环境变量文件：', `\x1b[36m${envFilePath}\x1b[0m`);

@@ -1,18 +1,21 @@
-import { APP_VERSION, IS_DEV } from '@/constants/index.js';
-
 import { Logger, RequestContextService } from '@/common/services/index.js';
 
+import { AllConfig } from '@root/config/app.config.js';
+
 import { Injectable, NestMiddleware } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Request, Response, NextFunction } from 'express';
 import { ulid } from 'ulid';
 
 @Injectable()
 export class RequestPreprocessingMiddleware implements NestMiddleware {
+    constructor(private readonly configService: ConfigService<AllConfig, true>) {}
+
     use(req: Request, res: Response, next: NextFunction) {
         const reqId = req.headers['flx-request-id'] ?? ulid();
         req.id = typeof reqId === 'string' ? reqId : reqId[0];
         res.setHeader('flx-request-id', req.id);
-        req.version = APP_VERSION;
+        req.version = this.configService.get('app.appVersion', { infer: true });
         next();
     }
 }
@@ -35,6 +38,8 @@ export class RequestScopeMiddleware implements NestMiddleware {
 @Injectable()
 export class CorsMiddleware implements NestMiddleware {
     private readonly logger = new Logger(CorsMiddleware.name);
+
+    constructor(private readonly configService: ConfigService<AllConfig, true>) {}
 
     use(req: Request, res: Response, next: NextFunction) {
         const origin = (req.headers.origin as string) || (req.headers.referer as string);
@@ -100,7 +105,7 @@ export class CorsMiddleware implements NestMiddleware {
             return true;
         }
 
-        if (IS_DEV) {
+        if (this.configService.get('app.isDev', { infer: true })) {
             return true;
         }
 

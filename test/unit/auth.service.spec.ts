@@ -1,4 +1,4 @@
-import { loadEnv } from '@/constants/index.js';
+import { loadEnv } from '@/common/utils/index.js';
 
 import { BusinessException } from '@/common/exceptions/index.js';
 

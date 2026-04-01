@@ -1,5 +1,5 @@
 import { Request } from 'express';
-import { REFRESH_TOKEN_COOKIE } from '@/constants/index.js';
+import { REFRESH_TOKEN_COOKIE } from '@root/config/app.config.js';
 
 /**
  * 从 Bearer 格式字符串中提取 token。

@@ -149,4 +149,5 @@ prisma/generated/
 
 .obsidian
 
-config
+config/keys/*
+!config/keys/.gitkeep

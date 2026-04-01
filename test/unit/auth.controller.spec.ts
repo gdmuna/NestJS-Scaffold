@@ -1,7 +1,9 @@
 import { AuthController } from '@/modules/auth/auth.controller.js';
 import { AuthService } from '@/modules/auth/services/auth.service.js';
 
-import { REFRESH_TOKEN_COOKIE, loadEnv } from '@/constants/index.js';
+import { loadEnv } from '@/common/utils/index.js';
+
+import { REFRESH_TOKEN_COOKIE } from '@root/config/app.config.js';
 
 import { RequestContextService } from '@/common/services/request-context.service.js';
 
