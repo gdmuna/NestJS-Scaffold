@@ -1,0 +1,212 @@
+name: CI - Release Branch
+
+on:
+  push:
+    branches: ['release-[0-9]*']
+
+concurrency:
+  group: ci-release-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-and-format:
+    name: Lint and format
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Use Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: |
+          echo "📥 安装项目依赖"
+          pnpm install
+          echo "✓ 依赖安装完成"
+
+      - name: Format & Lint code
+        run: |
+          echo "📝 格式化代码"
+          pnpm format:check
+          echo "✓ 格式化完成"
+          echo "✅ 质量检查"
+          pnpm lint
+          echo "✓ 质量检查完成"
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:18.1-alpine
+        env:
+          POSTGRES_USER: ci_test
+          POSTGRES_PASSWORD: ci_test_password
+          POSTGRES_DB: nestjs_demo_basic_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    env:
+      DATABASE_URL: postgresql://ci_test:ci_test_password@localhost:5432/nestjs_demo_basic_test?schema=public
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Use Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: |
+          echo "📥 安装项目依赖"
+          pnpm install
+          echo "✓ 依赖安装完成"
+
+      - name: Extract version from package.json
+        id: version
+        run: |
+          VERSION=$(node -e "console.log(require('./package.json').version)")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "📦 Application Version: $VERSION"
+
+      - name: Generate Prisma Client
+        run: pnpm prisma generate
+
+      - name: Run tests with coverage
+        run: |
+          echo "🧪 运行测试"
+          pnpm test --ci --coverage
+          echo "✓ 测试完成"
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+
+  check-version:
+    name: Check version
+    runs-on: ubuntu-latest
+    outputs:
+      is_valid: ${{ steps.validate.outputs.is_valid }}
+      expected_version_prefix: ${{ steps.validate.outputs.expected_version_prefix }}
+      actual_version: ${{ steps.validate.outputs.actual_version }}
+      message_cn: ${{ steps.validate.outputs.message_cn }}
+      message_en: ${{ steps.validate.outputs.message_en }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Validate release version
+        id: validate
+        run: node scripts/validate-release-version.cjs
+
+  finished:
+    name: Finished
+    needs: [lint-and-format, test, check-version]
+    if: always()
+    runs-on: ubuntu-latest
+    env:
+      COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+
+    steps:
+      - name: Generate summary
+        run: |
+          TIMESTAMP_UTC=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          TIMESTAMP_CN=$(TZ='Asia/Shanghai' date +"%Y-%m-%d %H:%M:%S %Z")
+
+          # 获取 job 状态
+          LINT_FORMAT_STATUS="${{ needs.lint-and-format.result }}"
+          TEST_STATUS="${{ needs.test.result }}"
+          CHECK_VERSION_STATUS="${{ needs.check-version.result }}"
+
+          # 状态图标映射
+          case "$LINT_FORMAT_STATUS" in
+            success) LINT_FORMAT_ICON="✅" ;;
+            failure) LINT_FORMAT_ICON="❌" ;;
+            cancelled) LINT_FORMAT_ICON="🚫" ;;
+            skipped) LINT_FORMAT_ICON="⏭️" ;;
+            *) LINT_FORMAT_ICON="❓" ;;
+          esac
+
+          case "$TEST_STATUS" in
+            success) TEST_ICON="✅" ;;
+            failure) TEST_ICON="❌" ;;
+            cancelled) TEST_ICON="🚫" ;;
+            skipped) TEST_ICON="⏭️" ;;
+            *) TEST_ICON="❓" ;;
+          esac
+
+          case "$CHECK_VERSION_STATUS" in
+            success) CHECK_VERSION_ICON="✅" ;;
+            failure) CHECK_VERSION_ICON="❌" ;;
+            cancelled) CHECK_VERSION_ICON="🚫" ;;
+            skipped) CHECK_VERSION_ICON="⏭️" ;;
+            *) CHECK_VERSION_ICON="❓" ;;
+          esac
+
+          # 生成统一的 summary
+          cat >> $GITHUB_STEP_SUMMARY << EOF
+          # 🔬 CI 流程报告 - Release Branch
+          ## 📋 基本信息
+          - **触发事件**: push
+          - **代码仓库**: [${{ github.repository }}](${{ github.server_url }}/${{ github.repository }})
+          - **所属分支**: [${{ github.ref_name }}](${{ github.server_url }}/${{ github.repository }}/tree/${{ github.ref_name }})
+          - **提交哈希**: [${GITHUB_SHA:0:7}](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})
+          - **提交信息**: ${COMMIT_MESSAGE}
+          - **应用版本**: ${{ needs.test.outputs.version }}
+          ## 📝 执行状态
+          | Job | 状态 |
+          |-----|------|
+          | Lint and format | $LINT_FORMAT_ICON $LINT_FORMAT_STATUS |
+          | Test | $TEST_ICON $TEST_STATUS |
+          | Check version | $CHECK_VERSION_ICON $CHECK_VERSION_STATUS |
+          EOF
+
+          # 显示版本检查详情
+          if [ "$CHECK_VERSION_STATUS" == "success" ]; then
+            cat >> $GITHUB_STEP_SUMMARY << EOF
+          ## ✅ 版本验证
+          - ${{ needs.check-version.outputs.message_cn }}
+          - ${{ needs.check-version.outputs.message_en }}
+          EOF
+          elif [ "$CHECK_VERSION_STATUS" == "failure" ]; then
+            cat >> $GITHUB_STEP_SUMMARY << EOF
+          ## ❌ 版本验证失败
+          - ${{ needs.check-version.outputs.message_cn }}
+          - ${{ needs.check-version.outputs.message_en }}
+          - **期望版本**: ${{ needs.check-version.outputs.expected_version_prefix }}.x
+          - **实际版本**: ${{ needs.check-version.outputs.actual_version }}
+          EOF
+          fi
+
+          cat >> $GITHUB_STEP_SUMMARY << EOF
+          ## ⏰ 时间戳
+          - **完成时间 (UTC)**: $TIMESTAMP_UTC
+          - **完成时间 (Asia/Shanghai)**: $TIMESTAMP_CN
+          EOF

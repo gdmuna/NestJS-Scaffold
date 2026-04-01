@@ -1,6 +1,28 @@
 #!/bin/sh
 
-echo -e "\n🚀\x1b[36m 执行 Pre-commit hooks...\x1b[0m\n"
+GREEN="\033[32m"; YELLOW="\033[33m"; RESET="\033[0m"
+
+printf "%-12b  %b\n" "\n${GREEN}[GitHook]" "[LOG] 执行 Pre-commit hook...${RESET}"
+
+# 加密环境变量，以防忘记加密
+dotenvx encrypt -f .env.development -f .env.test -f .env.production
+
+# 将加密后的环境变量文件添加到暂存区
+git add .env.development .env.test .env.production
+
+if git diff --cached --quiet; then
+    printf "%-12b  %b\n" "${YELLOW}[GitHook]" "[WARN] 无暂存文件，跳出 Pre-commit hooks${RESET}"
+    exit 0
+fi
+
 pnpm lint-staged
-pnpm test
-echo -e "\n✅\x1b[32m Pre-commit hooks 执行完毕\x1b[0m\n"
+
+staged_has_scripts=$(git diff --cached --name-only -- '*.js' '*.ts')
+if [ -z "$staged_has_scripts" ]; then
+    printf "%-12b  %b\n" "${GREEN}[GitHook]" "[LOG] 无暂存的 .js/.ts 文件，跳过测试${RESET}"
+else
+    pnpm test
+fi
+
+printf "%-12b  %b\n" "${GREEN}[GitHook]" "[LOG] Pre-commit hooks 执行完毕${RESET}"
+exit 0

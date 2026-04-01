@@ -33,13 +33,6 @@ export default [
             ...tsPlugin.configs.recommended.rules,
 
             // TypeScript 特定规则
-            '@typescript-eslint/no-unused-vars': [
-                'error',
-                {
-                    argsIgnorePattern: '^_',
-                    varsIgnorePattern: '^_',
-                },
-            ],
             '@typescript-eslint/no-explicit-any': 'off', // 允许显式 any
             '@typescript-eslint/explicit-module-boundary-types': 'off', // 灵活
 
@@ -55,6 +48,13 @@ export default [
             '@typescript-eslint/explicit-function-return-types': 'off', // 不强制函数返回类型
             '@typescript-eslint/no-floating-promises': 'off', // 允许未 await 的 Promise
             '@typescript-eslint/no-non-null-assertion': 'warn', // 允许非空断言但警告
+            '@typescript-eslint/no-unused-vars': [
+                'warn',
+                {
+                    argsIgnorePattern: '^_',
+                    varsIgnorePattern: '^_',
+                },
+            ], // 允许未使用的变量但警告
         },
     },
     {

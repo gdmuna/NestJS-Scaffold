@@ -1,0 +1,284 @@
+name: CI/CD - Development
+
+on:
+  push:
+    branches: [dev]
+
+env:
+  DOCKER_USERNAME: ${{ vars.DOCKER_USERNAME || github.repository_owner }}
+  DOCKER_REPO_NAME: ${{ vars.DOCKER_REPO_NAME || github.event.repository.name }}
+  DOTENV_PRIVATE_KEY_DEVELOPMENT: ${{ secrets.DOTENV_PRIVATE_KEY_DEVELOPMENT }}
+  DOTENV_PRIVATE_KEY_TEST: ${{ secrets.DOTENV_PRIVATE_KEY_TEST }}
+  BACKEND_CONTAINER_PORT: ${{ vars.DEV_BACKEND_CONTAINER_PORT || 3000 }}
+  BACKEND_HOST_PORT: ${{ vars.DEV_BACKEND_HOST_PORT || 3000 }}
+
+concurrency:
+  group: ci/cd-development-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-and-format:
+    name: Lint and format
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Use Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: |
+          echo "📥 安装项目依赖"
+          pnpm install
+          echo "✓ 依赖安装完成"
+
+      - name: Format & Lint code
+        run: |
+          echo "📝 格式化代码"
+          pnpm format:check
+          echo "✓ 格式化完成"
+          echo "✅ 质量检查"
+          pnpm lint
+          echo "✓ 质量检查完成"
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Use Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: |
+          echo "📥 安装项目依赖"
+          pnpm install
+          echo "✓ 依赖安装完成"
+
+      - name: Extract version from package.json
+        id: version
+        run: |
+          VERSION=$(node -e "console.log(require('./package.json').version)")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "📦 Application Version: $VERSION"
+
+      - name: Generate Prisma Client
+        run: pnpm prisma generate
+
+      - name: Run tests with coverage
+        run: |
+          echo "🧪 运行测试"
+          pnpm test --ci --coverage
+          echo "✓ 测试完成"
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+
+  build-and-publish:
+    name: Build and publish Docker image
+    needs: [lint-and-format, test]
+    if: "contains(github.event.head_commit.message, '[deploy]')"
+    runs-on: ubuntu-latest
+    outputs:
+      image-tag-latest: ${{ steps.image-tags.outputs.tag-latest }}
+      image-tag-timestampAndSha7: ${{ steps.image-tags.outputs.tag-timestampAndSha7 }}
+      image-tag-version: ${{ steps.image-tags.outputs.tag-version }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Extract short SHA and timestamp
+        id: build-info
+        run: |
+          echo "sha7=${GITHUB_SHA:0:7}" >> $GITHUB_OUTPUT
+          echo "timestamp=$(date +%Y%m%d)" >> $GITHUB_OUTPUT
+
+      - name: Generate image tags
+        id: image-tags
+        run: |
+          echo "tag-latest=dev-latest" >> $GITHUB_OUTPUT
+          echo "tag-timestampAndSha7=dev-${{ steps.build-info.outputs.timestamp }}-${{ steps.build-info.outputs.sha7 }}" >> $GITHUB_OUTPUT
+          echo "tag-version=dev-${{ needs.test.outputs.version }}" >> $GITHUB_OUTPUT
+
+      - name: Set up Docker buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ env.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.DOCKER_USERNAME }}/${{ env.DOCKER_REPO_NAME }}:${{ steps.image-tags.outputs.tag-latest }}
+            ${{ env.DOCKER_USERNAME }}/${{ env.DOCKER_REPO_NAME }}:${{ steps.image-tags.outputs.tag-timestampAndSha7 }}
+            ${{ env.DOCKER_USERNAME }}/${{ env.DOCKER_REPO_NAME }}:${{ steps.image-tags.outputs.tag-version }}
+          build-args: |
+            GIT_COMMIT=${{ github.sha }}
+            APP_VERSION=${{ needs.test.outputs.version }}
+            NODE_ENV=development
+            PORT=${{ env.BACKEND_CONTAINER_PORT }}
+
+  deploy:
+    name: Deploy to development server
+    needs: build-and-publish
+    if: "needs.build-and-publish.result == 'success'"
+    runs-on: ubuntu-latest
+    environment: development
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEPLOY_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -p ${{ secrets.DEPLOY_PORT || 22 }} ${{ secrets.DEPLOY_HOST }} >> ~/.ssh/known_hosts 2>/dev/null || true
+
+      - name: Copy deploy script
+        run: |
+          scp -P ${{ secrets.DEPLOY_PORT || 22 }} \
+              -i ~/.ssh/deploy_key \
+              scripts/deploy-server.sh \
+              ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }}:/tmp/deploy.sh
+
+      - name: Deploy application
+        run: |
+          ssh -p ${{ secrets.DEPLOY_PORT || 22 }} \
+              -i ~/.ssh/deploy_key \
+              ${{ secrets.DEPLOY_USER }}@${{ secrets.DEPLOY_HOST }} \
+              "bash /tmp/deploy.sh '${{ env.DOCKER_USERNAME }}/${{ env.DOCKER_REPO_NAME }}:${{ needs.build-and-publish.outputs.image-tag-latest }}' 'fovrgt-nestjs-demo-basic' '${{ env.BACKEND_HOST_PORT }}' ${{ env.DATABASE_URL }} '1panel-network'"
+
+  finished:
+    name: Finished
+    needs:
+      - lint-and-format
+      - test
+      - build-and-publish
+    if: always()
+    runs-on: ubuntu-latest
+    env:
+      COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+
+    steps:
+      - name: Generate summary
+        run: |
+          TIMESTAMP_UTC=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          TIMESTAMP_CN=$(TZ='Asia/Shanghai' date +"%Y-%m-%d %H:%M:%S %Z")
+
+          # 获取 job 状态
+          LINT_FORMAT_STATUS="${{ needs.lint-and-format.result }}"
+          TEST_STATUS="${{ needs.test.result }}"
+          BUILD_PUBLISH_STATUS="${{ needs.build-and-publish.result }}"
+
+          # 状态图标映射
+          case "$LINT_FORMAT_STATUS" in
+            success) LINT_FORMAT_ICON="✅" ;;
+            failure) LINT_FORMAT_ICON="❌" ;;
+            cancelled) LINT_FORMAT_ICON="🚫" ;;
+            skipped) LINT_FORMAT_ICON="⏭️" ;;
+            *) LINT_FORMAT_ICON="❓" ;;
+          esac
+
+          case "$TEST_STATUS" in
+            success) TEST_ICON="✅" ;;
+            failure) TEST_ICON="❌" ;;
+            cancelled) TEST_ICON="🚫" ;;
+            skipped) TEST_ICON="⏭️" ;;
+            *) TEST_ICON="❓" ;;
+          esac
+
+          case "$BUILD_PUBLISH_STATUS" in
+            success) BUILD_ICON="✅" ;;
+            failure) BUILD_ICON="❌" ;;
+            cancelled) BUILD_ICON="🚫" ;;
+            skipped) BUILD_ICON="⏭️" ;;
+            *) BUILD_ICON="❓" ;;
+          esac
+
+          # 生成统一的 summary
+          cat >> $GITHUB_STEP_SUMMARY << EOF
+          # 🚀 CI/CD 流程报告 - Development
+          ## 📋 基本信息
+          - **触发事件**: push
+          - **代码仓库**: [${{ github.repository }}](${{ github.server_url }}/${{ github.repository }})
+          - **所属分支**: [${{ github.ref_name }}](${{ github.server_url }}/${{ github.repository }}/tree/${{ github.ref_name }})
+          - **提交哈希**: [${GITHUB_SHA:0:7}](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})
+          - **提交信息**: ${COMMIT_MESSAGE}
+          - **应用版本**: ${{ needs.test.outputs.version }}
+          ## 📝 执行状态
+          | Job | 状态 |
+          |-----|------|
+          | Lint and format | $LINT_FORMAT_ICON $LINT_FORMAT_STATUS |
+          | Test | $TEST_ICON $TEST_STATUS |
+          | Build and publish Docker image | $BUILD_ICON $BUILD_PUBLISH_STATUS |
+          EOF
+
+          # 如果构建成功，显示镜像信息
+          if [ "$BUILD_PUBLISH_STATUS" == "success" ]; then
+            cat >> $GITHUB_STEP_SUMMARY << EOF
+          ## 📦 Docker 镜像
+          - **仓库地址**: [Docker Hub/${{ env.DOCKER_USERNAME }}/${{ env.DOCKER_REPO_NAME }}](https://hub.docker.com/repository/docker/${{ env.DOCKER_USERNAME }}/${{ env.DOCKER_REPO_NAME }})
+          - **镜像标签**:
+            - \`${{ env.DOCKER_USERNAME }}/${{ env.DOCKER_REPO_NAME }}:${{ needs.build-and-publish.outputs.image-tag-latest }}\`
+            - \`${{ env.DOCKER_USERNAME }}/${{ env.DOCKER_REPO_NAME }}:${{ needs.build-and-publish.outputs.image-tag-timestampAndSha7 }}\`
+            - \`${{ env.DOCKER_USERNAME }}/${{ env.DOCKER_REPO_NAME }}:${{ needs.build-and-publish.outputs.image-tag-version }}\`
+          EOF
+
+          elif [ "$BUILD_PUBLISH_STATUS" == "skipped" ]; then
+            cat >> $GITHUB_STEP_SUMMARY << EOF
+          ## ℹ️ Docker 镜像
+          - 镜像构建已跳过
+          EOF
+
+          elif [ "$BUILD_PUBLISH_STATUS" == "failure" ]; then
+            cat >> $GITHUB_STEP_SUMMARY << EOF
+          ## ❗ Docker 镜像
+          - 镜像构建失败，请检查日志以获取详细信息
+          EOF
+
+          elif [ "$BUILD_PUBLISH_STATUS" == "cancelled" ]; then
+            cat >> $GITHUB_STEP_SUMMARY << EOF
+          ## ❗ Docker 镜像
+          - 镜像构建被取消
+          EOF
+          fi
+
+          # 时间戳
+          cat >> $GITHUB_STEP_SUMMARY << EOF
+          ## ⏰ 时间戳
+          - **完成时间 (UTC)**: $TIMESTAMP_UTC
+          - **完成时间 (Asia/Shanghai)**: $TIMESTAMP_CN
+          EOF

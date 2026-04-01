@@ -1,0 +1,252 @@
+name: Pull Request Check - Production
+
+on:
+  pull_request:
+    branches: [main]
+    types: [opened, synchronize, reopened]
+
+concurrency:
+  group: pr-check-prod-${{ github.event.pull_request.id }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:18.1-alpine
+        env:
+          POSTGRES_USER: ci_test
+          POSTGRES_PASSWORD: ci_test_password
+          POSTGRES_DB: nestjs_demo_basic_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    env:
+      DATABASE_URL: postgresql://ci_test:ci_test_password@localhost:5432/nestjs_demo_basic_test?schema=public
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Use Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: |
+          echo "📥 安装项目依赖"
+          pnpm install
+          echo "✓ 依赖安装完成"
+
+      - name: Generate Prisma Client
+        run: pnpm prisma generate
+
+      - name: Run tests with coverage
+        run: |
+          echo "🧪 运行测试"
+          pnpm test --ci --coverage
+          echo "✓ 测试完成"
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+
+  lint-and-format:
+    name: Lint and format
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Use Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: |
+          echo "📥 安装项目依赖"
+          pnpm install
+          echo "✓ 依赖安装完成"
+
+      - name: Format & Lint code
+        run: |
+          echo "📝 格式化代码"
+          pnpm format:check
+          echo "✓ 格式化完成"
+          echo "✅ 质量检查"
+          pnpm lint
+          echo "✓ 质量检查完成"
+
+  check-version:
+    name: Check package version
+    if: startsWith(github.event.pull_request.head.ref, 'release-')
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Use Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: |
+          echo "📥 安装项目依赖"
+          pnpm install
+          echo "✓ 依赖安装完成"
+
+      - name: Extract version from package.json
+        id: version
+        run: |
+          VERSION=$(node -e "console.log(require('./package.json').version)")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "📦 Application Version: $VERSION"
+
+      - name: Check package version
+        id: check_version
+        env:
+          BRANCH_NAME: ${{ github.event.pull_request.head.ref }}
+        run: node scripts/validate-version.cjs "$BRANCH_NAME"
+        continue-on-error: true
+
+      - name: Comment on PR with version check result
+        uses: actions/github-script@v7
+        env:
+          COMMENT_TEXT: ${{ steps.check_version.outputs.comment }}
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const comment = process.env.COMMENT_TEXT.replace(/%0A/g, '\n');
+            const commentIdentifier = '<!-- version-check-comment -->';
+            const commentBody = `${commentIdentifier}\n${comment}`;
+
+            // 查找并删除之前的版本检查评论
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number
+            });
+
+            for (const oldComment of comments) {
+              if (oldComment.body?.includes(commentIdentifier) &&
+                  oldComment.user?.type === 'Bot' &&
+                  oldComment.user?.login === 'github-actions[bot]') {
+                await github.rest.issues.deleteComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  comment_id: oldComment.id
+                });
+                console.log(`Deleted old version check comment #${oldComment.id}`);
+              }
+            }
+
+            // 发送新评论
+            await github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: commentBody
+            });
+
+      - name: Fail if version check failed
+        if: steps.check_version.outputs.valid != 'true'
+        run: |
+          echo "❌ Package version check failed"
+          exit 1
+
+  finished:
+    name: Finished
+    needs: [test, lint-and-format, check-version]
+    if: always()
+    runs-on: ubuntu-latest
+    env:
+      PR_TITLE: ${{ github.event.pull_request.title }}
+      PR_HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}
+      PR_HEAD_REF: ${{ github.event.pull_request.head.ref }}
+
+    steps:
+      - name: Generate summary
+        run: |
+          TIMESTAMP_UTC=$(date -u +"%Y-%m-%d %H:%M:%S UTC")
+          TIMESTAMP_CN=$(TZ='Asia/Shanghai' date +"%Y-%m-%d %H:%M:%S %Z")
+
+          # 转义特殊字符，防止破坏 Markdown
+          PR_TITLE_ESCAPED="${PR_TITLE//$'\n'/ }"
+          PR_TITLE_ESCAPED="${PR_TITLE_ESCAPED//\`/\\\`}"
+          PR_HEAD_REPO_ESCAPED="${PR_HEAD_REPO//\`/\\\`}"
+          PR_HEAD_REF_ESCAPED="${PR_HEAD_REF//\`/\\\`}"
+
+          # 获取各个 job 状态
+          TEST_STATUS="${{ needs.test.result }}"
+          LINT_STATUS="${{ needs.lint-and-format.result }}"
+          VERSION_STATUS="${{ needs.check-version.result }}"
+
+          # 状态图标映射函数
+          get_icon() {
+            case "$1" in
+              success) echo "✅" ;;
+              failure) echo "❌" ;;
+              cancelled) echo "🚫" ;;
+              skipped) echo "⏭️" ;;
+              *) echo "❓" ;;
+            esac
+          }
+
+          TEST_ICON=$(get_icon "$TEST_STATUS")
+          LINT_ICON=$(get_icon "$LINT_STATUS")
+          VERSION_ICON=$(get_icon "$VERSION_STATUS")
+
+          # 生成统一的 summary
+          cat >> $GITHUB_STEP_SUMMARY << EOF
+          # 🧪 PR 预检流程报告 - Production
+          ## 📋 基本信息
+          - **触发事件**: pull_request
+          - **代码仓库**: [${{ github.repository }}](${{ github.server_url }}/${{ github.repository }})
+          - **PR**: [#${{ github.event.pull_request.number }} - ${PR_TITLE_ESCAPED}](${{ github.event.pull_request.html_url }})
+          - **源分支 → 目标分支**: [${PR_HEAD_REPO_ESCAPED}/${PR_HEAD_REF_ESCAPED} → ${{ github.base_ref }}](${{ github.event.pull_request.html_url }}/changes)
+          - **提交哈希**: [${GITHUB_SHA:0:7}](${{ github.server_url }}/${{ github.repository }}/commit/${{ github.sha }})
+          - **应用版本**: ${{ needs.check-version.outputs.version || 'N/A' }}
+          ## 📝 执行状态
+          | Job | 状态 |
+          |-----|------|
+          | Test | $TEST_ICON $TEST_STATUS |
+          | Lint and format | $LINT_ICON $LINT_STATUS |
+          | Check package version | $VERSION_ICON $VERSION_STATUS |
+          ## ⏰ 时间戳
+          - **完成时间 (UTC)**: $TIMESTAMP_UTC
+          - **完成时间 (Asia/Shanghai)**: $TIMESTAMP_CN
+          EOF
