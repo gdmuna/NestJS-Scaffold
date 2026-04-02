@@ -66,6 +66,9 @@
     "noFallthroughCasesInSwitch": true,
 
     // 每个文件作为单独的模块编译（提高兼容性）
-    "isolatedModules": true
+    "isolatedModules": true,
+
+    // 引入 Jest 全局类型（describe、it、expect 等）
+    "types": ["jest", "node"]
   }
 }

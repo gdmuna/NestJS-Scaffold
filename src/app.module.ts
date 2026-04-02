@@ -10,7 +10,7 @@ import {
 } from './app.interceptor.js';
 import { AppController, TestController } from './app.controller.js';
 import { AppService } from './app.service.js';
-import { AllExceptionsFilter } from './app.filter.js';
+import { AllExceptionsFilter, ZodExceptionFilter, ThrottlerExceptionFilter } from './app.filter.js';
 
 import { ErrorCatalogModule, AuthModule } from '@/modules/index.js';
 
@@ -140,9 +140,20 @@ import pino from 'pino';
         AppService,
         DatabaseService,
         RequestContextService,
+        // Filters — 注册顺序决定 LIFO 执行顺序
+        // AllExceptionsFilter 最先注册 = 最后执行 = 兜底所有未匹配异常
+        // ZodExceptionFilter / ThrottlerExceptionFilter 后注册 = 优先执行各自匹配的异常类型
         {
             provide: APP_FILTER,
             useClass: AllExceptionsFilter,
+        },
+        {
+            provide: APP_FILTER,
+            useClass: ZodExceptionFilter,
+        },
+        {
+            provide: APP_FILTER,
+            useClass: ThrottlerExceptionFilter,
         },
     ],
     exports: [RequestContextService, DatabaseService],

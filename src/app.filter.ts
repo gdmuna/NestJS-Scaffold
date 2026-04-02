@@ -1,35 +1,42 @@
-import { ErrorCatalogService } from '@/modules/error-catalog/error-catalog.service.js';
-
-import { BusinessException } from '@/common/exceptions/index.js';
+import {
+    AppException,
+    ValidationFailedException,
+    RateLimitException,
+    SysUnknownException,
+    SysSerializationException,
+    SysHttpException,
+    ErrorRegistry,
+} from '@/common/exceptions/index.js';
 import { Logger, RequestContextService } from '@/common/services/index.js';
 
-import { ArgumentsHost, Catch, ExceptionFilter, HttpException, HttpStatus } from '@nestjs/common';
-import { Request, Response } from 'express';
-import { PrismaClientKnownRequestError } from '@root/prisma/generated/internal/prismaNamespace.js';
+import { API_DOCS_BASE_URL } from '@/constants/observability.constant.js';
+
+import { ArgumentsHost, Catch, ExceptionFilter, HttpException } from '@nestjs/common';
+import { ThrottlerException } from '@nestjs/throttler';
 import { ZodValidationException, ZodSerializationException } from 'nestjs-zod';
 import { ZodError } from 'zod/v4';
-import { ThrottlerException } from '@nestjs/throttler';
+import { Request, Response } from 'express';
+
+// ─── 共享响应逻辑 ──────────────────────────────────────────────────────────────
 
 /**
- * @description: 全局异常过滤器，捕获所有未处理的异常并返回统一格式的错误响应
+ * 所有 ExceptionFilter 的抽象基类。
+ * 封装"日志 + HTTP 响应"的共同逻辑，子类只需构造 AppException 实例后调用 handle()。
  */
-@Catch()
-export class AllExceptionsFilter implements ExceptionFilter {
-    private readonly logger = new Logger(AllExceptionsFilter.name);
+abstract class BaseExceptionFilter implements ExceptionFilter {
+    protected abstract readonly logger: Logger;
 
-    constructor(
-        private readonly errorCatalogService: ErrorCatalogService,
-        private readonly requestContextService: RequestContextService
-    ) {}
+    constructor(protected readonly requestContextService: RequestContextService) {}
 
-    catch(exception: unknown, host: ArgumentsHost) {
+    abstract catch(exception: unknown, host: ArgumentsHost): void;
+
+    protected handle(exception: AppException, host: ArgumentsHost): void {
         const ctx = host.switchToHttp();
         const request = ctx.getRequest<Request>();
         const response = ctx.getResponse<Response>();
 
-        const { message, code, status, details, level } = this.parseException(exception);
-
-        const stack = (exception as any).stack ?? 'No stack trace available';
+        // 防止双重响应：headers 已发送时直接跳过（Filter 被重入时的安全阀）
+        if (response.headersSent) return;
 
         const requestContext = this.requestContextService.get() ?? null;
 
@@ -38,158 +45,135 @@ export class AllExceptionsFilter implements ExceptionFilter {
             version: request.version || 'unknown',
             ...(request.jwtClaim?.user && {
                 user: {
-                    id: request.jwtClaim?.user.id,
-                    username: request.jwtClaim?.user.username,
+                    id: request.jwtClaim.user.id,
+                    username: request.jwtClaim.user.username,
                 },
             }),
             metadata: requestContext?.metadata ?? null,
-            details: details ?? null,
+            details: exception.details ?? null,
             error: {
-                type: exception?.constructor?.name ?? 'Unknown',
-                code,
-                message,
-                status,
+                type: exception.constructor.name,
+                code: exception.code,
+                status: exception.getStatus(),
             },
         };
 
-        if (level === 'error' || (!level && status >= 500)) {
-            this.logger.error(logContext, `Internal error\n${stack}`);
-        } else if (level === 'warn' || (!level && status === 429)) {
-            // 限流 - warn 级别
-            this.logger.warn(logContext, `Rate limit exceeded: ${message}`);
-        } else if (level === 'warn' || (!level && status === 408)) {
-            // 请求超时 - warn 级别
-            this.logger.warn(logContext, message);
-        } else if (level === 'info' || (!level && status >= 400)) {
-            // 其他客户端错误 - info 级别
-            this.logger.info(logContext, `Client error: ${message}`);
+        const responseBody = exception.getResponse() as Record<string, unknown>;
+        const message = String(responseBody['message'] ?? exception.message);
+
+        // logLevel 来自 @RegisterException meta，无 if-else 链
+        if (exception.logLevel === 'fatal' || exception.logLevel === 'error') {
+            this.logger[exception.logLevel](logContext, `${message}\n${exception.stack ?? ''}`);
         } else {
-            // 其他情况 - fatal 级别
-            this.logger.fatal(logContext, `Unexpected exception\n${stack}`);
+            this.logger[exception.logLevel](logContext, message);
         }
 
-        const exceptionRes = {
+        const docsUrl =
+            ErrorRegistry.get(exception.code)?.docsPath ??
+            `${API_DOCS_BASE_URL}/errors/${exception.code}`;
+
+        if (exception.retryAfterMs !== undefined) {
+            response.setHeader('Retry-After', Math.ceil(exception.retryAfterMs / 1000));
+        }
+
+        response.status((exception as HttpException).getStatus()).json({
             success: false,
-            code,
+            code: exception.code,
             message,
-            type: this.errorCatalogService.getErrorTypeUrl(code),
+            type: docsUrl,
             timestamp: new Date().toISOString(),
             context: requestContext,
-            details: details ?? null,
-        };
-        response.status(status).json(exceptionRes);
+            details: exception.details ?? null,
+        });
+    }
+}
+
+// ─── Filter 1：兜底（所有未被专用 Filter 捕获的异常） ──────────────────────────
+
+/**
+ * 全局兜底 Filter。职责：
+ *   - AppException 子类实例：直接交由 handle() 处理（logLevel 已由装饰器声明）
+ *   - 未知异常（非 AppException）：包装为 SysUnknownException 后统一处理
+ *
+ * 注意：Prisma 原始错误应在 DatabaseService 内部就地包装为 DatabaseException，
+ * 不应穿透至此。若仍然穿透，会被包装为 SysUnknownException（fatal 级别）。
+ */
+@Catch()
+export class AllExceptionsFilter extends BaseExceptionFilter {
+    protected readonly logger = new Logger(AllExceptionsFilter.name);
+
+    constructor(requestContextService: RequestContextService) {
+        super(requestContextService);
     }
 
-    // 解析异常，区分不同类型的异常并提取相关信息
-    private parseException(exception: unknown) {
-        // 处理业务异常
-        if (exception instanceof BusinessException) {
-            const response: any = exception.getResponse();
-            return {
-                message: response.message ?? 'Business Exception',
-                code:
-                    typeof response === 'string'
-                        ? response
-                        : (response.code ?? 'BUSINESS_EXCEPTION'),
-                status: exception.getStatus() ?? HttpStatus.BAD_REQUEST,
-                details: typeof response === 'object' ? response.details : undefined,
-            };
+    catch(exception: unknown, host: ArgumentsHost): void {
+        if (exception instanceof AppException) {
+            return this.handle(exception, host);
         }
 
-        // 处理请求参数验证异常
+        // NestJS 内置 HttpException（NotFoundException、BadRequestException 等）
+        // 不是系统级未知错误，包装为 SysHttpException 后经统一的 handle() 路径处理
+        if (exception instanceof HttpException) {
+            return this.handle(new SysHttpException(exception), host);
+        }
+
+        // 真正未预期的异常：包装为 SysUnknownException，cause 链保留原始错误
+        const cause = exception instanceof Error ? exception : new Error(String(exception));
+        return this.handle(new SysUnknownException({ cause }), host);
+    }
+}
+
+// ─── Filter 2：Zod 验证 / 序列化异常 ──────────────────────────────────────────
+
+/**
+ * 专用 Filter：处理 nestjs-zod 抛出的两类异常。
+ *   - ZodValidationException：请求体/查询参数校验失败 → ValidationFailedException
+ *   - ZodSerializationException：响应 DTO 校验失败 → SysSerializationException
+ */
+@Catch(ZodValidationException, ZodSerializationException)
+export class ZodExceptionFilter extends BaseExceptionFilter {
+    protected readonly logger = new Logger(ZodExceptionFilter.name);
+
+    constructor(requestContextService: RequestContextService) {
+        super(requestContextService);
+    }
+
+    catch(
+        exception: ZodValidationException | ZodSerializationException,
+        host: ArgumentsHost
+    ): void {
         if (exception instanceof ZodValidationException) {
             const zodError = exception.getZodError() as ZodError;
             const details = zodError.issues.map((issue) => ({
-                field: issue.path.join('.'),
+                field: issue.path.join('.') || '(root)',
                 message: issue.message,
                 code: issue.code,
             }));
             this.requestContextService.mergeContextMetadata({ validationErrors: details });
-            return {
-                message: 'Bad Request',
-                code: 'VALIDATION_FAILED',
-                status: HttpStatus.BAD_REQUEST,
-                details,
-            };
+            this.handle(new ValidationFailedException({ details }), host);
+        } else {
+            this.handle(new SysSerializationException({ cause: exception }), host);
         }
+    }
+}
 
-        // 处理响应序列化异常
-        if (exception instanceof ZodSerializationException) {
-            return {
-                message: 'Internal Server Error',
-                code: 'SERIALIZATION_ERROR',
-                status: HttpStatus.INTERNAL_SERVER_ERROR,
-            };
-        }
+// ─── Filter 3：限流异常 ────────────────────────────────────────────────────────
 
-        if (exception instanceof ThrottlerException) {
-            const response: any = exception.getResponse();
-            return {
-                message: response.message ?? 'Too Many Requests',
-                code: 'TOO_MANY_REQUESTS',
-                status: HttpStatus.TOO_MANY_REQUESTS,
-            };
-        }
+/**
+ * 专用 Filter：处理 @nestjs/throttler 抛出的 ThrottlerException。
+ * retryAfterMs 目前置为 undefined（ThrottlerException 未提供剩余等待时间）。
+ * 若未来 Throttler 版本提供此信息，可在此处填入以自动写入 Retry-After 响应头。
+ */
+@Catch(ThrottlerException)
+export class ThrottlerExceptionFilter extends BaseExceptionFilter {
+    protected readonly logger = new Logger(ThrottlerExceptionFilter.name);
 
-        // 处理 HTTP 异常
-        if (exception instanceof HttpException) {
-            const response: any = exception.getResponse();
-            return {
-                message:
-                    typeof response === 'string'
-                        ? response
-                        : (response.message ?? 'HTTP Exception'),
-                code: response.code ?? 'HTTP_EXCEPTION',
-                status: exception.getStatus(),
-                details: typeof response === 'object' ? (response as any).details : undefined,
-            };
-        }
-
-        // 处理 Prisma 异常
-        if (exception instanceof PrismaClientKnownRequestError) {
-            return this.parsePrismaException(exception);
-        }
-
-        // 处理未知异常
-        return {
-            message: (exception as any).message ?? 'Unexpected Internal Server Error',
-            code: 'UNEXPECTED_INTERNAL_SERVER_ERROR',
-            status: HttpStatus.INTERNAL_SERVER_ERROR,
-            level: 'fatal',
-        };
+    constructor(requestContextService: RequestContextService) {
+        super(requestContextService);
     }
 
-    // 解析 Prisma 异常，根据错误码返回不同的响应
-    private parsePrismaException(error: PrismaClientKnownRequestError) {
-        switch (error.code) {
-            case 'P2002':
-                return {
-                    message: error.message,
-                    code: 'UNIQUE_CONSTRAINT_VIOLATION',
-                    status: HttpStatus.CONFLICT,
-                    details: error.meta,
-                };
-            case 'P2003':
-                return {
-                    message: error.message,
-                    code: 'FOREIGN_KEY_VIOLATION',
-                    status: HttpStatus.BAD_REQUEST,
-                    details: error.meta,
-                };
-            case 'P2025':
-                return {
-                    message: error.message,
-                    code: 'RECORD_NOT_FOUND',
-                    status: HttpStatus.NOT_FOUND,
-                    details: error.meta,
-                };
-            default:
-                return {
-                    message: error.message,
-                    code: 'DATABASE_ERROR',
-                    status: HttpStatus.INTERNAL_SERVER_ERROR,
-                    details: error.meta,
-                };
-        }
+    catch(_exception: ThrottlerException, host: ArgumentsHost): void {
+        console.log('ThrottlerException', _exception);
+        this.handle(new RateLimitException(), host);
     }
 }

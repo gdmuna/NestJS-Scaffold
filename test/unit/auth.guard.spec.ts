@@ -58,6 +58,6 @@ describe('AuthGuard', () => {
 
         const request: any = { headers: { authorization: 'Bearer bad-token' } };
 
-        expect(() => guard.canActivate(createContext(request))).toThrow('Invalid access token');
+        expect(() => guard.canActivate(createContext(request))).toThrow('Token 无效或已过期');
     });
 });

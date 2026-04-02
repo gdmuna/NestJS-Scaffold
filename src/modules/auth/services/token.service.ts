@@ -1,8 +1,9 @@
-import { Injectable } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import { AllConfig } from '@/constants/index.js';
 
 import { User } from '@root/prisma/generated/client.js';
+
+import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 
 import jwt, { SignOptions } from 'jsonwebtoken';
 import { ulid } from 'ulid';
