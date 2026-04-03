@@ -107,7 +107,7 @@ sequenceDiagram
 }
 ```
 
-效果：同一请求的异步调用链中任意位置（Service、DatabaseService 等）均可通过 `RequestContextService.get()` 访问 `requestId`，无需手动传参。
+效果：同一请求的异步调用链中任意位置（Service、DatabaseService 等）均可通过 `AlsService.get()` 访问 `requestId`，无需手动传参。
 
 ### 3.3 CorsMiddleware
 

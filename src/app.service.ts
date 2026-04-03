@@ -1,8 +1,8 @@
-import { Logger, RequestContextService } from '@/common/services/index.js';
+import { Logger } from '@/common/services/index.js';
 
 import { AllConfig } from '@/constants/index.js';
 
-import { DatabaseService } from '@/infra/database/database.service.js';
+import { DatabaseService, AlsService } from '@/infra/index.js';
 
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -14,18 +14,18 @@ export class AppService {
     constructor(
         private readonly databaseService: DatabaseService,
         private readonly configService: ConfigService<AllConfig, true>,
-        private readonly requestContextService: RequestContextService
+        private readonly alsService: AlsService
     ) {}
 
     getHello() {
         this.logger.verbose('Handling getHello request');
-        this.requestContextService.get(); // 确保上下文已初始化
-        this.requestContextService.mergeContextMetadata({
+        this.alsService.get(); // 确保上下文已初始化
+        this.alsService.mergeContextMetadata({
             exampleKey: '666',
             ccc: { aaa: 'wtf' },
         });
-        this.requestContextService.mergeContextMetadata({ exampleKey: 'exampleValue' });
-        this.requestContextService.mergeContextMetadata({ ccc: { bbb: 'omg', aaa: '999' } });
+        this.alsService.mergeContextMetadata({ exampleKey: 'exampleValue' });
+        this.alsService.mergeContextMetadata({ ccc: { bbb: 'omg', aaa: '999' } });
         return 'Hello World!';
     }
 

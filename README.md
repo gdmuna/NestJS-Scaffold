@@ -129,7 +129,7 @@ nestjs-demo-basic/
 │   ├── common/
 │   │   ├── decorators/         # 自定义装饰器
 │   │   ├── exceptions/         # BusinessException
-│   │   ├── services/           # RequestContextService、LoggerService
+│   │   ├── services/           # AlsService、LoggerService
 │   │   └── utils/              # 工具函数（helpers / formatters / validators / errors）
 │   ├── constants/              # 全局常量（含错误码目录）
 │   ├── infra/

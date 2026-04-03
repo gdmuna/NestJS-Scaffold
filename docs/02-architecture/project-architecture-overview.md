@@ -69,7 +69,7 @@ flowchart TD
 
     subgraph SL["Service 层"]
         direction LR
-        AS["AppService"] --- AUS["AuthService + TokenService"] --- RCS["RequestContextService"]
+        AS["AppService"] --- AUS["AuthService + TokenService"] --- RCS["AlsService"]
     end
 
     subgraph IL["Infrastructure 层"]
@@ -97,7 +97,7 @@ flowchart TD
 | App | `src/app.*` | 全局中间件、拦截器、过滤器装配；健康检查 |
 | Auth | `src/modules/auth/` | 注册/登录/刷新令牌；JWT 签发与验证 |
 | ErrorCatalog | `src/modules/error-catalog/` | `GET /errors`：错误码自文档化 API |
-| Common | `src/common/` | 工具函数库、装饰器、`BusinessException`、`RequestContextService` |
+| Common | `src/common/` | 工具函数库、装饰器、`BusinessException`、`AlsService` |
 | Constants | `src/constants/` | 所有常量的唯一定义来源 |
 | Infra | `src/infra/` | `DatabaseService`（Prisma + PG）、存储抽象 |
 

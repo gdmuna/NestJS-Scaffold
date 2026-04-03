@@ -14,11 +14,9 @@ import { AllExceptionFilter, ZodExceptionFilter, ThrottlerExceptionFilter } from
 
 import { ExceptionCatalogModule, AuthModule } from '@/modules/index.js';
 
-import { RequestContextService } from '@/common/services/index.js';
-
 import allConfig, { AllConfig } from '@/constants/index.js';
 
-import { DatabaseService } from '@/infra/database/database.service.js';
+import { DatabaseModule, AlsModule } from '@/infra/index.js';
 
 import { Module, MiddlewareConsumer, NestModule, Global } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -108,6 +106,8 @@ import pino from 'pino';
                 };
             },
         }),
+        AlsModule,
+        DatabaseModule,
         ExceptionCatalogModule,
         AuthModule,
     ],
@@ -138,8 +138,6 @@ import pino from 'pino';
             useClass: ZodValidationPipe,
         },
         AppService,
-        DatabaseService,
-        RequestContextService,
         // Filters — 注册顺序决定 LIFO 执行顺序
         // AllExceptionsFilter 最先注册 = 最后执行 = 兜底所有未匹配异常
         // ZodExceptionFilter / ThrottlerExceptionFilter 后注册 = 优先执行各自匹配的异常类型
@@ -156,7 +154,7 @@ import pino from 'pino';
             useClass: ThrottlerExceptionFilter,
         },
     ],
-    exports: [RequestContextService, DatabaseService],
+    exports: [AlsModule, DatabaseModule],
 })
 export class AppModule implements NestModule {
     configure(consumer: MiddlewareConsumer) {

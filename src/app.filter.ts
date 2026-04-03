@@ -7,9 +7,11 @@ import {
     SysHttpException,
     ErrorRegistry,
 } from '@/common/exceptions/index.js';
-import { Logger, RequestContextService } from '@/common/services/index.js';
+import { Logger } from '@/common/services/index.js';
 
 import { API_DOCS_BASE_URL } from '@/constants/index.js';
+
+import { AlsService } from '@/infra/als/als.service.js';
 
 import { ArgumentsHost, Catch, ExceptionFilter, HttpException } from '@nestjs/common';
 import { ThrottlerException } from '@nestjs/throttler';
@@ -24,7 +26,7 @@ import { Request, Response } from 'express';
 abstract class BaseExceptionFilter implements ExceptionFilter {
     protected abstract readonly logger: Logger;
 
-    constructor(protected readonly requestContextService: RequestContextService) {}
+    constructor(protected readonly alsService: AlsService) {}
 
     abstract catch(exception: unknown, host: ArgumentsHost): void;
 
@@ -36,7 +38,7 @@ abstract class BaseExceptionFilter implements ExceptionFilter {
         // 防止双重响应：headers 已发送时直接跳过（Filter 被重入时的安全阀）
         if (response.headersSent) return;
 
-        const requestContext = this.requestContextService.get() ?? null;
+        const requestContext = this.alsService.get() ?? null;
 
         const logContext = {
             requestId: request.id || 'unknown',
@@ -98,8 +100,8 @@ abstract class BaseExceptionFilter implements ExceptionFilter {
 export class AllExceptionFilter extends BaseExceptionFilter {
     protected readonly logger = new Logger(AllExceptionFilter.name);
 
-    constructor(protected readonly requestContextService: RequestContextService) {
-        super(requestContextService);
+    constructor(protected readonly alsService: AlsService) {
+        super(alsService);
     }
 
     catch(exception: unknown, host: ArgumentsHost): void {
@@ -128,8 +130,8 @@ export class AllExceptionFilter extends BaseExceptionFilter {
 export class ZodExceptionFilter extends BaseExceptionFilter {
     protected readonly logger = new Logger(ZodExceptionFilter.name);
 
-    constructor(protected readonly requestContextService: RequestContextService) {
-        super(requestContextService);
+    constructor(protected readonly alsService: AlsService) {
+        super(alsService);
     }
 
     catch(
@@ -143,7 +145,7 @@ export class ZodExceptionFilter extends BaseExceptionFilter {
                 message: issue.message,
                 code: issue.code,
             }));
-            this.requestContextService.mergeContextMetadata({ validationErrors: details });
+            this.alsService.mergeContextMetadata({ validationErrors: details });
             this.handle(new ValidationFailedException({ details }), host);
         } else {
             this.handle(new SysSerializationException({ cause: exception }), host);
@@ -160,8 +162,8 @@ export class ZodExceptionFilter extends BaseExceptionFilter {
 export class ThrottlerExceptionFilter extends BaseExceptionFilter {
     protected readonly logger = new Logger(ThrottlerExceptionFilter.name);
 
-    constructor(protected readonly requestContextService: RequestContextService) {
-        super(requestContextService);
+    constructor(protected readonly alsService: AlsService) {
+        super(alsService);
     }
 
     catch(_exception: ThrottlerException, host: ArgumentsHost): void {

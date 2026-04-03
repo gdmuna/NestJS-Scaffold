@@ -1,7 +1,10 @@
-import { Logger, RequestContextService } from '@/common/services/index.js';
+import { Logger } from '@/common/services/index.js';
+
+import { AllConfig } from '@/constants/index.js';
+
+import { AlsService } from '@/infra/als/als.service.js';
 
 import { PrismaClient } from '@root/prisma/generated/client.js';
-import { AllConfig } from '@/constants/index.js';
 
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -19,7 +22,7 @@ export class DatabaseService extends PrismaClient implements OnModuleDestroy, On
 
     constructor(
         private readonly configService: ConfigService<AllConfig, true>,
-        private readonly requestContextService: RequestContextService
+        private readonly alsService: AlsService
     ) {
         const DATABASE_URL = configService.get('database.databaseUrl', { infer: true });
         if (!DATABASE_URL) {
@@ -56,7 +59,7 @@ export class DatabaseService extends PrismaClient implements OnModuleDestroy, On
 
         // 订阅错误事件
         this.$on('error' as never, (event: any) => {
-            const requestContext = this.requestContextService.get();
+            const requestContext = this.alsService.get();
             this.logger.error(
                 {
                     requestId: requestContext?.requestId || 'unknown',
@@ -75,7 +78,7 @@ export class DatabaseService extends PrismaClient implements OnModuleDestroy, On
 
         // 订阅警告事件
         this.$on('warn' as never, (event: any) => {
-            const requestContext = this.requestContextService.get();
+            const requestContext = this.alsService.get();
             this.logger.warn(
                 {
                     requestId: requestContext?.requestId || 'unknown',
@@ -92,7 +95,7 @@ export class DatabaseService extends PrismaClient implements OnModuleDestroy, On
 
     // 处理查询事件，检测慢查询并记录日志
     private handleQueryEvent(event: { timestamp: Date; query: string; duration: number }) {
-        const requestContext = this.requestContextService.get();
+        const requestContext = this.alsService.get();
         const { timestamp, query } = event;
         const duration = Math.round(event.duration);
 

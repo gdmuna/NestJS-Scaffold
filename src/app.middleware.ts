@@ -1,6 +1,8 @@
-import { Logger, RequestContextService } from '@/common/services/index.js';
+import { Logger } from '@/common/services/index.js';
 
 import { AllConfig } from '@/constants/index.js';
+
+import { AlsService } from '@/infra/als/als.service.js';
 
 import { Injectable, NestMiddleware } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -22,7 +24,7 @@ export class RequestPreprocessingMiddleware implements NestMiddleware {
 
 @Injectable()
 export class RequestScopeMiddleware implements NestMiddleware {
-    constructor(private readonly requestContextService: RequestContextService) {}
+    constructor(private readonly alsService: AlsService) {}
     use(req: Request, _: Response, next: NextFunction) {
         const requestContext = {
             requestId: typeof req.id === 'string' ? req.id : String(req.id ?? 'unknown'),
@@ -30,7 +32,7 @@ export class RequestScopeMiddleware implements NestMiddleware {
             version: req.version,
             metadata: {},
         };
-        this.requestContextService.run(requestContext, () => {
+        this.alsService.run(requestContext, () => {
             next();
         });
     }

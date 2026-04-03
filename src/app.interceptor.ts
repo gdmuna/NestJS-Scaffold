@@ -1,6 +1,8 @@
-import { Logger, RequestContextService } from '@/common/services/index.js';
+import { Logger } from '@/common/services/index.js';
 
 import { AllConfig } from '@/constants/index.js';
+
+import { AlsService } from '@/infra/als/als.service.js';
 
 import {
     Injectable,
@@ -97,12 +99,12 @@ export class PerformanceInterceptor implements NestInterceptor {
 
 @Injectable()
 export class ResponseFormatInterceptor implements NestInterceptor {
-    constructor(private readonly requestContextService: RequestContextService) {}
+    constructor(private readonly alsService: AlsService) {}
 
     intercept(_: ExecutionContext, next: CallHandler) {
         return next.handle().pipe(
             map((data) => {
-                const requestContext = this.requestContextService.get() ?? null;
+                const requestContext = this.alsService.get() ?? null;
                 return {
                     success: true,
                     data: data ?? null,

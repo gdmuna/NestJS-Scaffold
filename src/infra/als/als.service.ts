@@ -7,7 +7,7 @@ import cloneDeep from 'lodash/cloneDeep.js';
  * 请求上下文接口，用于在异步调用链中传递请求级别的上下文信息。
  * 通过 AsyncLocalStorage 维护请求隔离，避免请求间数据混淆。
  */
-export interface RequestContext {
+export interface AlsContext {
     requestId: string;
     userId?: string;
     version?: string;
@@ -39,9 +39,9 @@ export interface RequestContext {
  * this.contextService.mergeContextMetadata({ duration: 100, cacheHit: true });
  */
 @Injectable()
-export class RequestContextService {
+export class AlsService {
     /** AsyncLocalStorage 实例，用于存储和隔离异步上下文 */
-    private asyncLocalStorage = new AsyncLocalStorage<RequestContext>();
+    private asyncLocalStorage = new AsyncLocalStorage<AlsContext>();
 
     /**
      * 在指定的请求上下文中执行回调函数。
@@ -58,7 +58,7 @@ export class RequestContextService {
      *   () => next()
      * );
      */
-    run(context: RequestContext, callback: () => void) {
+    run(context: AlsContext, callback: () => void) {
         this.asyncLocalStorage.run(context, callback);
     }
 

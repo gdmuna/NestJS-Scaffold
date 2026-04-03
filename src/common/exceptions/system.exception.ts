@@ -2,6 +2,11 @@ import { RegisterException } from './exception-registry.js';
 import { SystemException } from './app.exception.js';
 import { HttpException } from '@nestjs/common';
 
+/**
+ * 系统初始化异常的抽象基类。系统启动过程中发生的异常（如配置加载失败、依赖服务连接失败等）应继承此类。
+ */
+export abstract class SystemInitializedException extends SystemException {}
+
 export const SystemExceptionCode = {
     SERIALIZATION_ERROR: 'SYS_SERIALIZATION_ERROR',
     HTTP_UNEXPECTED_ERROR: 'SYS_HTTP_UNEXPECTED_ERROR',
@@ -59,15 +64,15 @@ export class SysHttpException extends SystemException {
 }
 
 /**
- * 未预期的系统错误（兜底）。
+ * 未预期的系统异常（兜底）。
  * AllExceptionsFilter 在无法识别异常类型时包装为此类。
  * logLevel: fatal — 需要开发者立即关注。
  */
 @RegisterException({
     code: SystemExceptionCode.UNEXPECTED_ERROR,
     statusCode: 500,
-    message: '未预期的服务器内部错误',
-    description: '服务器遭遇未预期的异常，该错误不由客户端行为引起，请联系开发团队',
+    message: '未预期的服务器内部异常',
+    description: '服务器遭遇未预期的异常，该异常不由客户端行为引起，请联系开发团队',
     retryable: false,
     logLevel: 'fatal',
 })

@@ -5,7 +5,7 @@ import { DatabaseService } from '@/infra/database/database.service.js';
 
 import allConfig from '@/constants/index.js';
 
-import { RequestContextService } from '@/common/services/index.js';
+import { AlsService } from '@/infra/index.js';
 
 import { ConfigModule } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -37,7 +37,7 @@ describe('AppController (unit)', () => {
             providers: [
                 AppService,
                 DatabaseService,
-                RequestContextService,
+                AlsService,
                 {
                     provide: PinoLogger,
                     useValue: mockPinoLogger,
