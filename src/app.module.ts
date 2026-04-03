@@ -12,7 +12,7 @@ import { AppController, TestController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { AllExceptionFilter, ZodExceptionFilter, ThrottlerExceptionFilter } from './app.filter.js';
 
-import { ErrorCatalogModule, AuthModule } from '@/modules/index.js';
+import { ExceptionCatalogModule, AuthModule } from '@/modules/index.js';
 
 import { RequestContextService } from '@/common/services/index.js';
 
@@ -108,7 +108,7 @@ import pino from 'pino';
                 };
             },
         }),
-        ErrorCatalogModule,
+        ExceptionCatalogModule,
         AuthModule,
     ],
     controllers: [AppController, TestController],

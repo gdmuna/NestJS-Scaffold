@@ -28,6 +28,7 @@ export class RequestScopeMiddleware implements NestMiddleware {
             requestId: typeof req.id === 'string' ? req.id : String(req.id ?? 'unknown'),
             time: Date.now(),
             version: req.version,
+            metadata: {},
         };
         this.requestContextService.run(requestContext, () => {
             next();

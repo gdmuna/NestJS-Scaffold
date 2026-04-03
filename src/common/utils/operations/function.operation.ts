@@ -7,13 +7,13 @@
  * 成功结果类型 - 包含执行成功的数据。
  * 以元组形式表示，第一项为 true，第二项为数据。
  */
-export type Ok<T> = [ok: true, data: T];
+export type Ok<T> = [data: T, err: undefined];
 
 /**
  * 失败结果类型 - 包含执行失败的错误信息。
  * 以元组形式表示，第一项为 false，第二项为错误信息。
  */
-export type Fail<E> = [ok: false, error: E];
+export type Fail<E> = [data: undefined, err: E];
 
 /**
  * 结果类型 - 表示函数执行成功或失败的结果。
@@ -27,16 +27,16 @@ export type Result<T, E> = Ok<T> | Fail<E>;
  * @returns 一个 Ok 类型的结果，表示成功并包含数据
  */
 export function ok<T>(data: T): Ok<T> {
-    return [true, data];
+    return [data, undefined];
 }
 
 /**
  *  创建一个失败结果。
- * @param error 失败的错误信息
+ * @param err 失败的错误信息
  * @returns 一个 Fail 类型的结果，表示失败并包含错误信息
  */
-export function fail<E>(error: E): Fail<E> {
-    return [false, error];
+export function fail<E>(err: E): Fail<E> {
+    return [undefined, err];
 }
 
 /**
