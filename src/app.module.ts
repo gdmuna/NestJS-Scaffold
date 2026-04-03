@@ -10,15 +10,15 @@ import {
 } from './app.interceptor.js';
 import { AppController, TestController } from './app.controller.js';
 import { AppService } from './app.service.js';
-import { AllExceptionsFilter, ZodExceptionFilter, ThrottlerExceptionFilter } from './app.filter.js';
+import { AllExceptionFilter, ZodExceptionFilter, ThrottlerExceptionFilter } from './app.filter.js';
 
 import { ErrorCatalogModule, AuthModule } from '@/modules/index.js';
-
-import { DatabaseService } from '@/infra/database/database.service.js';
 
 import { RequestContextService } from '@/common/services/index.js';
 
 import allConfig, { AllConfig } from '@/constants/index.js';
+
+import { DatabaseService } from '@/infra/database/database.service.js';
 
 import { Module, MiddlewareConsumer, NestModule, Global } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -145,7 +145,7 @@ import pino from 'pino';
         // ZodExceptionFilter / ThrottlerExceptionFilter 后注册 = 优先执行各自匹配的异常类型
         {
             provide: APP_FILTER,
-            useClass: AllExceptionsFilter,
+            useClass: AllExceptionFilter,
         },
         {
             provide: APP_FILTER,

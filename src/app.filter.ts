@@ -9,15 +9,13 @@ import {
 } from '@/common/exceptions/index.js';
 import { Logger, RequestContextService } from '@/common/services/index.js';
 
-import { API_DOCS_BASE_URL } from '@/constants/observability.constant.js';
+import { API_DOCS_BASE_URL } from '@/constants/index.js';
 
 import { ArgumentsHost, Catch, ExceptionFilter, HttpException } from '@nestjs/common';
 import { ThrottlerException } from '@nestjs/throttler';
 import { ZodValidationException, ZodSerializationException } from 'nestjs-zod';
 import { ZodError } from 'zod/v4';
 import { Request, Response } from 'express';
-
-// ─── 共享响应逻辑 ──────────────────────────────────────────────────────────────
 
 /**
  * 所有 ExceptionFilter 的抽象基类。
@@ -88,8 +86,6 @@ abstract class BaseExceptionFilter implements ExceptionFilter {
     }
 }
 
-// ─── Filter 1：兜底（所有未被专用 Filter 捕获的异常） ──────────────────────────
-
 /**
  * 全局兜底 Filter。职责：
  *   - AppException 子类实例：直接交由 handle() 处理（logLevel 已由装饰器声明）
@@ -99,10 +95,10 @@ abstract class BaseExceptionFilter implements ExceptionFilter {
  * 不应穿透至此。若仍然穿透，会被包装为 SysUnknownException（fatal 级别）。
  */
 @Catch()
-export class AllExceptionsFilter extends BaseExceptionFilter {
-    protected readonly logger = new Logger(AllExceptionsFilter.name);
+export class AllExceptionFilter extends BaseExceptionFilter {
+    protected readonly logger = new Logger(AllExceptionFilter.name);
 
-    constructor(requestContextService: RequestContextService) {
+    constructor(protected readonly requestContextService: RequestContextService) {
         super(requestContextService);
     }
 
@@ -123,8 +119,6 @@ export class AllExceptionsFilter extends BaseExceptionFilter {
     }
 }
 
-// ─── Filter 2：Zod 验证 / 序列化异常 ──────────────────────────────────────────
-
 /**
  * 专用 Filter：处理 nestjs-zod 抛出的两类异常。
  *   - ZodValidationException：请求体/查询参数校验失败 → ValidationFailedException
@@ -134,7 +128,7 @@ export class AllExceptionsFilter extends BaseExceptionFilter {
 export class ZodExceptionFilter extends BaseExceptionFilter {
     protected readonly logger = new Logger(ZodExceptionFilter.name);
 
-    constructor(requestContextService: RequestContextService) {
+    constructor(protected readonly requestContextService: RequestContextService) {
         super(requestContextService);
     }
 
@@ -157,8 +151,6 @@ export class ZodExceptionFilter extends BaseExceptionFilter {
     }
 }
 
-// ─── Filter 3：限流异常 ────────────────────────────────────────────────────────
-
 /**
  * 专用 Filter：处理 @nestjs/throttler 抛出的 ThrottlerException。
  * retryAfterMs 目前置为 undefined（ThrottlerException 未提供剩余等待时间）。
@@ -168,12 +160,13 @@ export class ZodExceptionFilter extends BaseExceptionFilter {
 export class ThrottlerExceptionFilter extends BaseExceptionFilter {
     protected readonly logger = new Logger(ThrottlerExceptionFilter.name);
 
-    constructor(requestContextService: RequestContextService) {
+    constructor(protected readonly requestContextService: RequestContextService) {
         super(requestContextService);
     }
 
     catch(_exception: ThrottlerException, host: ArgumentsHost): void {
-        console.log('ThrottlerException', _exception);
+        // eslint-disable-next-line no-console
+        console.log('ThrottlerException:', _exception);
         this.handle(new RateLimitException(), host);
     }
 }

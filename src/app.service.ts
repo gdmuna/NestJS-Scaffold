@@ -1,11 +1,12 @@
-import { DatabaseService } from '@/infra/database/database.service.js';
-
 import { Logger, RequestContextService } from '@/common/services/index.js';
 
-import { Injectable } from '@nestjs/common';
-import { uptime } from 'node:process';
-import { ConfigService } from '@nestjs/config';
 import { AllConfig } from '@/constants/index.js';
+
+import { DatabaseService } from '@/infra/database/database.service.js';
+
+import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { uptime } from 'node:process';
 
 @Injectable()
 export class AppService {
