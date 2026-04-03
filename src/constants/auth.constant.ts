@@ -6,7 +6,7 @@ import { Algorithm } from 'jsonwebtoken';
 
 // auth
 
-const ALGORITHMS = [
+const _algorithm = [
     'HS256',
     'HS384',
     'HS512',
@@ -37,7 +37,7 @@ export const JWT_ACCESS_TOKEN = {
     get ALGORITHM() {
         return (_JWT_ACCESS_TOKEN.ALGORITHM ??= (() => {
             const v = process.env.JWT_ACCESS_ALGORITHM || 'ES256';
-            return ALGORITHMS.includes(v as Algorithm) ? v : 'ES256';
+            return _algorithm.includes(v as Algorithm) ? v : 'ES256';
         })()) as Algorithm;
     },
     get EXPIRES_IN() {
@@ -60,7 +60,7 @@ export const JWT_REFRESH_TOKEN = {
     get ALGORITHM() {
         return (_JWT_REFRESH_TOKEN.ALGORITHM ??= (() => {
             const v = process.env.JWT_REFRESH_ALGORITHM || 'ES256';
-            return ALGORITHMS.includes(v as Algorithm) ? v : 'ES256';
+            return _algorithm.includes(v as Algorithm) ? v : 'ES256';
         })()) as Algorithm;
     },
     get EXPIRES_IN() {
@@ -96,7 +96,7 @@ const AuthConfigValidateSchema = z
             (v) => v || readFile('config/keys/jwt-public.pem').replace(/\\n/g, '\n'),
             z.string().min(1)
         ),
-        JWT_ACCESS_ALGORITHM: z.enum(ALGORITHMS).default('ES256'),
+        JWT_ACCESS_ALGORITHM: z.enum(_algorithm).default('ES256'),
         JWT_ACCESS_EXPIRES_IN: z.string().default('15m'),
         // refresh token
         JWT_REFRESH_PRIVATE_KEY: z.preprocess(
@@ -107,7 +107,7 @@ const AuthConfigValidateSchema = z
             (v) => v || readFile('config/keys/jwt-public.pem').replace(/\\n/g, '\n'),
             z.string().min(1)
         ),
-        JWT_REFRESH_ALGORITHM: z.enum(ALGORITHMS).default('ES256'),
+        JWT_REFRESH_ALGORITHM: z.enum(_algorithm).default('ES256'),
         JWT_REFRESH_EXPIRES_IN: z.string().default('7d'),
         // cookie
         JWT_REFRESH_COOKIE_SAME_SITE: z.enum(['lax', 'strict', 'none']).default('lax'),
