@@ -22,12 +22,12 @@
     "lint:staged": "lint-staged",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "env:encrypt": "dotenvx encrypt -f .env.development -f .env.test -f .env.production",
-    "env:decrypt": "dotenvx decrypt -f .env.development -f .env.test -f .env.production",
+    "env:encrypt": "dotenvx encrypt -f .env.development .env.test .env.production",
+    "env:decrypt": "dotenvx decrypt -f .env.development .env.test .env.production",
     "prepare": "husky"
   },
   "keywords": [],
-  "author": "FOV-RGT",
+  "author": "Maiturin",
   "engines": {
     "node": ">=22.0.0",
     "pnpm": ">=8.0.0"
