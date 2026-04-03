@@ -46,3 +46,10 @@ export class InvalidTokenException extends AuthException {}
     logLevel: 'info',
 })
 export class MissingTokenException extends AuthException {}
+
+export default {
+    DuplicateUserException,
+    InvalidCredentialsException,
+    InvalidTokenException,
+    MissingTokenException,
+};

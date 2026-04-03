@@ -1,4 +1,4 @@
-import { RegisterException } from './error-registry.js';
+import { RegisterException } from './exception-registry.js';
 import { ClientException } from './app.exception.js';
 
 /**
@@ -34,12 +34,17 @@ export abstract class ResourceException extends ClientException {}
 // ─── 框架异常的叶节点包装类 ────────────────────────────────────────────────────
 // 这些类由对应的专用 Filter 实例化，不应在业务代码中 throw。
 
+export const ClientExceptionCode = {
+    PARAMS_VALIDATION_FAILED: 'CLIENT_PARAMS_VALIDATION_FAILED',
+    REQUEST_RATE_LIMIT_EXCEEDED: 'CLIENT_REQUEST_RATE_LIMIT_EXCEEDED',
+} as const;
+
 /**
  * Zod 请求参数验证失败（由 ZodValidationPipe 抛出，ZodExceptionFilter 包装）。
  * details 为字段级别的验证错误列表。
  */
 @RegisterException({
-    code: 'VALIDATION_FAILED',
+    code: ClientExceptionCode.PARAMS_VALIDATION_FAILED,
     statusCode: 400,
     message: '请求参数验证失败',
     description: '请求参数不符合 Schema 约束，details 字段包含各字段的具体错误信息',
@@ -64,7 +69,7 @@ export class ValidationFailedException extends ValidationException {}
  * 请求频率超过限流阈值（由 ThrottlerGuard 抛出，ThrottlerExceptionFilter 包装）。
  */
 @RegisterException({
-    code: 'RATE_LIMIT_EXCEEDED',
+    code: ClientExceptionCode.REQUEST_RATE_LIMIT_EXCEEDED,
     statusCode: 429,
     message: '请求过于频繁，请稍后重试',
     description: '客户端请求频率超过服务端设定的速率限制，请遵循响应头 Retry-After 等待后重试',
@@ -72,3 +77,8 @@ export class ValidationFailedException extends ValidationException {}
     logLevel: 'warn',
 })
 export class RateLimitException extends ClientException {}
+
+export default {
+    ValidationFailedException,
+    RateLimitException,
+};

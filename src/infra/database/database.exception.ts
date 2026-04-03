@@ -1,6 +1,6 @@
 import { RegisterException, InfraException } from '@/common/exceptions/index.js';
 
-export const DatabaseCode = {
+export const DatabaseExceptionCode = {
     UNIQUE_VIOLATION: 'DB_UNIQUE_VIOLATION',
     RECORD_NOT_FOUND: 'DB_RECORD_NOT_FOUND',
     QUERY_FAILED: 'DB_QUERY_FAILED',
@@ -13,7 +13,7 @@ export const DatabaseCode = {
 export abstract class DatabaseException extends InfraException {}
 
 @RegisterException({
-    code: DatabaseCode.UNIQUE_VIOLATION,
+    code: DatabaseExceptionCode.UNIQUE_VIOLATION,
     statusCode: 409,
     message: '数据唯一性约束冲突',
     description: '数据库写入/更新失败：唯一性约束（如主键、唯一索引）已被违反',
@@ -23,7 +23,7 @@ export abstract class DatabaseException extends InfraException {}
 export class UniqueViolationException extends DatabaseException {}
 
 @RegisterException({
-    code: DatabaseCode.RECORD_NOT_FOUND,
+    code: DatabaseExceptionCode.RECORD_NOT_FOUND,
     statusCode: 404,
     message: '记录不存在',
     description: '数据库查询目标记录不存在或已被删除',
@@ -33,7 +33,7 @@ export class UniqueViolationException extends DatabaseException {}
 export class RecordNotFoundException extends DatabaseException {}
 
 @RegisterException({
-    code: DatabaseCode.QUERY_FAILED,
+    code: DatabaseExceptionCode.QUERY_FAILED,
     statusCode: 500,
     message: '数据库查询失败',
     description: '数据库查询执行失败，可能由连接超时、语法错误或事务冲突引起',
@@ -41,3 +41,9 @@ export class RecordNotFoundException extends DatabaseException {}
     logLevel: 'error',
 })
 export class QueryFailedException extends DatabaseException {}
+
+export default {
+    UniqueViolationException,
+    RecordNotFoundException,
+    QueryFailedException,
+};

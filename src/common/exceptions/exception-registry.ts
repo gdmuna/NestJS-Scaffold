@@ -1,7 +1,5 @@
 import { AppException } from './app.exception.js';
 
-export const EXCEPTION_META_KEY = Symbol('exception:meta');
-
 /**
  * 异常类的静态元数据——装饰器写入、启动时注册、运行时查询。
  *
@@ -27,7 +25,9 @@ export interface StaticMeta<TCode extends string = string> {
     detailsSchema?: Record<string, unknown>;
 }
 
-const registry = new Map<string, StaticMeta>();
+const _registry = new Map<string, StaticMeta>();
+
+export const EXCEPTION_META_KEY = Symbol('exception:meta');
 
 /**
  * 双职装饰器：
@@ -50,12 +50,12 @@ const registry = new Map<string, StaticMeta>();
  */
 export function RegisterException<TCode extends string>(meta: StaticMeta<TCode>): ClassDecorator {
     return (target) => {
-        if (registry.has(meta.code)) {
+        if (_registry.has(meta.code)) {
             throw new Error(
                 `重复注册错误码 "${meta.code}"` + `，请检查 ${target.name} 与已注册类是否命名冲突`
             );
         }
-        registry.set(meta.code, meta);
+        _registry.set(meta.code, meta);
         Reflect.defineMetadata(EXCEPTION_META_KEY, meta, target);
     };
 }
@@ -66,22 +66,24 @@ export function RegisterException<TCode extends string>(meta: StaticMeta<TCode>)
  * 数据源：各域 `*.exception.ts` 中的 `@RegisterException` 装饰器在文件被 import 时自动填充。
  * 注册时机：NestJS 构建 DI 容器之前（模块 import 阶段），可安全在 Filter 初始化时查询。
  */
-export class ErrorRegistry {
+class _errorRegistry {
     /** 按错误码查询完整 meta，未注册返回 undefined */
-    static get(code: string): StaticMeta | undefined;
-    static get(exception: AppException): StaticMeta | undefined;
-    static get(arg: string | AppException): StaticMeta | undefined {
+    get(code: string): StaticMeta | undefined;
+    get(exception: AppException): StaticMeta | undefined;
+    get(arg: string | AppException): StaticMeta | undefined {
         const code = typeof arg === 'string' ? arg : arg.code;
-        return registry.get(code);
+        return _registry.get(code);
     }
 
     /** 判断错误码是否已注册 */
-    static has(code: string) {
-        return registry.has(code);
+    has(code: string) {
+        return _registry.has(code);
     }
 
     /** 返回只读的全量注册表（用于 GET /errors 端点） */
-    static getAll(): ReadonlyMap<string, StaticMeta> {
-        return registry;
+    getAll(): ReadonlyMap<string, StaticMeta> {
+        return _registry;
     }
 }
+
+export const ErrorRegistry = new _errorRegistry();

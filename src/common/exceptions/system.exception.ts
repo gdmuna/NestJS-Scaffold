@@ -1,21 +1,12 @@
-import { RegisterException } from './error-registry.js';
+import { RegisterException } from './exception-registry.js';
 import { SystemException } from './app.exception.js';
 import { HttpException } from '@nestjs/common';
 
-/**
- * 未预期的系统错误（兜底）。
- * AllExceptionsFilter 在无法识别异常类型时包装为此类。
- * logLevel: fatal — 需要开发者立即关注。
- */
-@RegisterException({
-    code: 'SYS_UNEXPECTED_ERROR',
-    statusCode: 500,
-    message: '未预期的服务器内部错误',
-    description: '服务器遭遇未预期的异常，该错误不由客户端行为引起，请联系开发团队',
-    retryable: false,
-    logLevel: 'fatal',
-})
-export class SysUnknownException extends SystemException {}
+export const SystemExceptionCode = {
+    SERIALIZATION_ERROR: 'SYS_SERIALIZATION_ERROR',
+    HTTP_UNEXPECTED_ERROR: 'SYS_HTTP_UNEXPECTED_ERROR',
+    UNEXPECTED_ERROR: 'SYS_UNEXPECTED_ERROR',
+} as const;
 
 /**
  * 响应序列化失败。
@@ -24,7 +15,7 @@ export class SysUnknownException extends SystemException {}
  * logLevel: error — 运维关注，不对客户端暴露内部细节。
  */
 @RegisterException({
-    code: 'SYS_SERIALIZATION_ERROR',
+    code: SystemExceptionCode.SERIALIZATION_ERROR,
     statusCode: 500,
     message: '响应序列化失败',
     description: '服务器在序列化响应数据时失败，通常是 Response DTO 定义与 Service 返回值不一致',
@@ -41,7 +32,7 @@ export class SysSerializationException extends SystemException {}
  * statusCode 和 logLevel 由构造时依据被包装异常的实际状态码决定，不受装饰器默认值约束。
  */
 @RegisterException({
-    code: 'SYS_HTTP_UNEXPECTED_EXCEPTION',
+    code: SystemExceptionCode.HTTP_UNEXPECTED_ERROR,
     statusCode: 500, // 占位；实际值由 RuntimeContext.statusCode 覆盖
     message: '未预期的 HTTP 异常',
     description:
@@ -66,3 +57,24 @@ export class SysHttpException extends SystemException {
         });
     }
 }
+
+/**
+ * 未预期的系统错误（兜底）。
+ * AllExceptionsFilter 在无法识别异常类型时包装为此类。
+ * logLevel: fatal — 需要开发者立即关注。
+ */
+@RegisterException({
+    code: SystemExceptionCode.UNEXPECTED_ERROR,
+    statusCode: 500,
+    message: '未预期的服务器内部错误',
+    description: '服务器遭遇未预期的异常，该错误不由客户端行为引起，请联系开发团队',
+    retryable: false,
+    logLevel: 'fatal',
+})
+export class SysUnknownException extends SystemException {}
+
+export default {
+    SysSerializationException,
+    SysHttpException,
+    SysUnknownException,
+};

@@ -163,13 +163,4 @@ export class AuthService {
             },
         });
     }
-
-    /**
-     * 创建统一的未授权业务异常。
-     *
-     * @param message 异常消息。
-     * @returns 未授权业务异常实例。
-     * @example
-     * throw authService['createUnauthorizedException']('Invalid token');
-     */
 }

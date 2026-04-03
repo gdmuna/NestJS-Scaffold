@@ -1,4 +1,4 @@
-import { EXCEPTION_META_KEY, type StaticMeta } from './error-registry.js';
+import { EXCEPTION_META_KEY, type StaticMeta } from './exception-registry.js';
 
 import { HttpException } from '@nestjs/common';
 
@@ -12,7 +12,7 @@ export interface RuntimeContext<TDetails = unknown> {
     /** 本次异常的具体数据（如字段错误列表、冲突资源信息） */
     details?: TDetails;
     /** 原始底层错误，通过 Error.cause 链传递，不出现在 HTTP 响应体中 */
-    cause?: Error;
+    cause?: Error | unknown;
     /** 动态覆盖 StaticMeta.message（可选，优先级高于装饰器中的默认消息） */
     message?: string;
     /** 限流/背压场景：客户端应等待的毫秒数，写入响应头 Retry-After */
@@ -90,6 +90,10 @@ export abstract class AppException<TDetails = unknown> extends HttpException {
                 : meta.retryable;
         this.retryAfterMs = context.retryAfterMs;
         this.details = context.details;
+
+        if (context.cause instanceof Error && context.cause.stack) {
+            this.stack = `${this.stack}\nCaused by: ${context.cause.stack}`;
+        }
     }
 
     /**
