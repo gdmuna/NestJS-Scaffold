@@ -5,7 +5,7 @@ GREEN="\033[32m"; YELLOW="\033[33m"; RESET="\033[0m"
 printf "%-12b  %b\n" "\n${GREEN}[GitHook]" "[LOG] 执行 Pre-commit hook...${RESET}"
 
 # 记录已暂存的 env 文件（排除 .env.keys 和 .env.example）
-staged_env_files=$(git diff --cached --name-only -- '.env.*' '!.env.keys' '!.env.example')
+staged_env_files=$(git diff --cached --name-only -- ':.env.*' ':!.env.keys' ':!.env.example')
 
 # 如果有暂存的 env 文件，先加密它们
 if [ -n "$staged_env_files" ]; then
