@@ -6,7 +6,7 @@
 <h1>NestJS Demo Basic</h1>
 
 <p align="center">
-  NestJS 生产级后端基线模板——认证系统、分层架构、CI 流水线、容器化部署、结构化日志、开箱即用
+  NestJS 后端基线模板——认证系统、分层架构、CI 流水线、容器化部署、结构化日志、开箱即用
 </p>
 
 <p align="center">
@@ -25,9 +25,9 @@
 
 | 依赖 | 版本要求 | 说明 |
 | ---- | -------- | ---- |
-| Node.js | ≥ 20.0.0 | 运行时 |
+| Node.js | ≥ 22.0.0 | 运行时 |
 | pnpm | ≥ 8.0.0 | 包管理器 |
-| PostgreSQL | ≥ 15 | 主数据库（可选，仅使用数据库功能时必须） |
+| PostgreSQL | ≥ 18 | 主数据库（可选，仅使用数据库功能时必须） |
 | Docker | — | 容器化部署（可选） |
 
 ---
@@ -129,7 +129,7 @@ nestjs-demo-basic/
 │   ├── common/
 │   │   ├── decorators/         # 自定义装饰器
 │   │   ├── exceptions/         # BusinessException
-│   │   ├── services/           # RequestContextService、LoggerService
+│   │   ├── services/           # AlsService、LoggerService
 │   │   └── utils/              # 工具函数（helpers / formatters / validators / errors）
 │   ├── constants/              # 全局常量（含错误码目录）
 │   ├── infra/

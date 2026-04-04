@@ -23,7 +23,7 @@ related:
 HTTP Request
   → RequestPreprocessingMiddleware  [分配 ULID req.id，注入 req.version]
   → RequestScopeMiddleware          [初始化 AsyncLocalStorage 上下文]
-  → 业务链路（任意层可调用 RequestContextService.get()）
+  → 业务链路（任意层可调用 AlsService.get()）
   → DatabaseService.$on('query')    [查询耗时 → 分级日志，含脱敏参数]
   → PerformanceInterceptor          [响应后计算总耗时 → 分级日志]
   → 响应头 flx-request-id: req.id   [透传给客户端，便于端侧关联]
@@ -59,7 +59,7 @@ sequenceDiagram
     RP->>RS: req.id = 客户端传入值，或生成新 ULID
     RS->>RS: ALS.run({ requestId, time, version })
     RS->>Svc: 调用链（无需手动传 requestId）
-    Svc->>Svc: RequestContextService.get().requestId
+    Svc->>Svc: AlsService.get().requestId
     Svc->>DB: 数据库查询
     DB->>DB: 日志含 requestId（从 ALS 读取）
     PI->>PI: 响应后：get().requestId + 计算耗时
@@ -68,7 +68,7 @@ sequenceDiagram
 
 ---
 
-## 4. RequestContextService
+## 4. AlsService
 
 `AsyncLocalStorage` 的类型化封装，提供请求级别的隔离上下文。
 

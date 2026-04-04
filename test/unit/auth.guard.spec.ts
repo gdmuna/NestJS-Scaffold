@@ -1,9 +1,5 @@
 import { AuthGuard } from '@/modules/auth/auth.guard.js';
 
-import { loadEnv } from '@/constants/index.js';
-
-loadEnv('test', { quiet: true });
-
 describe('AuthGuard', () => {
     const reflector = {
         getAllAndOverride: jest.fn(),
@@ -62,6 +58,6 @@ describe('AuthGuard', () => {
 
         const request: any = { headers: { authorization: 'Bearer bad-token' } };
 
-        expect(() => guard.canActivate(createContext(request))).toThrow('Invalid access token');
+        expect(() => guard.canActivate(createContext(request))).toThrow('Token 无效或已过期');
     });
 });

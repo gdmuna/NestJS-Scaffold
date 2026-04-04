@@ -38,6 +38,9 @@ category: index
 | [request-pipeline.md](02-architecture/request-pipeline.md) | active | 请求生命周期：中间件→守卫→管道→拦截器→异常过滤器全链路 |
 | [auth-module.md](02-architecture/auth-module.md) | active | 认证模块：JWT RS256 双令牌、Cookie 配置、令牌轮换流程 |
 | [database.md](02-architecture/database.md) | active | 数据库层：连接池、慢查询监控、参数脱敏、Prisma 错误映射 |
+| [exception-system.md](02-architecture/exception-system.md) | active | 异常系统设计：异常类层级、错误码体系、Result 类型契约、装饰器注册机制 |
+| [route-decorator.md](02-architecture/route-decorator.md) | active | 路由契约装饰器设计：@ApiRoute 选项接口、认证策略、元数据键体系、消费层分工 |
+| [openapi-enrichment.md](02-architecture/openapi-enrichment.md) | active | OpenAPI 自动富化设计：成功包络注入、失败响应示例自动生成、全局 Schema 注册、接入点 |
 | [observability.md](02-architecture/observability.md) | active | 可观测性：Pino 日志、AsyncLocalStorage 链路追踪、告警阈值 |
 | [cicd-deployment.md](02-architecture/cicd-deployment.md) | active | CI/CD 与部署：Workflow 矩阵、自动打标、Docker 多阶段构建 |
 
@@ -73,6 +76,8 @@ category: index
 | 系统架构全貌 | [project-architecture-overview.md](02-architecture/project-architecture-overview.md) |
 | 一个 HTTP 请求经历了哪些阶段 | [request-pipeline.md](02-architecture/request-pipeline.md) |
 | JWT 双令牌如何工作 | [auth-module.md](02-architecture/auth-module.md) |
+| 路由装饰器怎么声明认证策略和错误码 | [route-decorator.md](02-architecture/route-decorator.md) |
+| Swagger 文档如何自动富化成功/失败包络 | [openapi-enrichment.md](02-architecture/openapi-enrichment.md) |
 | 数据库连接池 / 慢查询监控 | [database.md](02-architecture/database.md) |
 | 日志和请求追踪如何串联 | [observability.md](02-architecture/observability.md) |
 | CI/CD 流水线和 Docker 部署 | [cicd-deployment.md](02-architecture/cicd-deployment.md) |

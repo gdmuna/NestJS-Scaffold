@@ -1,11 +1,10 @@
 import { TokenService } from './services/index.js';
 
 import { IS_PUBLIC_KEY } from '@/common/decorators/index.js';
-import { BusinessException } from '@/common/exceptions/index.js';
 import { extractAccessTokenFromRequest } from '@/common/utils/index.js';
+import { InvalidTokenException, MissingTokenException } from './auth.exception.js';
 
 import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
-import { HttpStatus } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Request } from 'express';
 
@@ -38,20 +37,12 @@ export class AuthGuard implements CanActivate {
         }
 
         if (!accessToken) {
-            throw new BusinessException(
-                'Missing access token',
-                'AUTH_FAILED',
-                HttpStatus.UNAUTHORIZED
-            );
+            throw new MissingTokenException();
         }
 
         const claim = this.tokenService.verifyToken(accessToken, 'access');
         if (!claim) {
-            throw new BusinessException(
-                'Invalid access token',
-                'AUTH_FAILED',
-                HttpStatus.UNAUTHORIZED
-            );
+            throw new InvalidTokenException();
         }
 
         request.jwtClaim = claim;

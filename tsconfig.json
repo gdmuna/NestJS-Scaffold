@@ -32,12 +32,9 @@
     // 编译输出目录
     "outDir": "./dist",
 
-    // 模块路径解析的基础目录
-    "baseUrl": "./",
-
     // 路径别名配置
     "paths": {
-      "@/*": ["src/*"],
+      "@/*": ["./src/*"],
       "@root/*": ["./*"]
     },
 
@@ -69,6 +66,9 @@
     "noFallthroughCasesInSwitch": true,
 
     // 每个文件作为单独的模块编译（提高兼容性）
-    "isolatedModules": true
+    "isolatedModules": true,
+
+    // 引入 Jest 全局类型（describe、it、expect 等）
+    "types": ["jest", "node"]
   }
 }

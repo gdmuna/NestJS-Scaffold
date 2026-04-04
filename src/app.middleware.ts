@@ -1,32 +1,38 @@
-import { APP_VERSION, IS_DEV } from '@/constants/index.js';
+import { Logger } from '@/common/services/index.js';
 
-import { Logger, RequestContextService } from '@/common/services/index.js';
+import { AllConfig } from '@/constants/index.js';
+
+import { AlsService } from '@/infra/als/als.service.js';
 
 import { Injectable, NestMiddleware } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Request, Response, NextFunction } from 'express';
 import { ulid } from 'ulid';
 
 @Injectable()
 export class RequestPreprocessingMiddleware implements NestMiddleware {
+    constructor(private readonly configService: ConfigService<AllConfig, true>) {}
+
     use(req: Request, res: Response, next: NextFunction) {
         const reqId = req.headers['flx-request-id'] ?? ulid();
         req.id = typeof reqId === 'string' ? reqId : reqId[0];
         res.setHeader('flx-request-id', req.id);
-        req.version = APP_VERSION;
+        req.version = this.configService.get('app.appVersion', { infer: true });
         next();
     }
 }
 
 @Injectable()
 export class RequestScopeMiddleware implements NestMiddleware {
-    constructor(private readonly requestContextService: RequestContextService) {}
+    constructor(private readonly alsService: AlsService) {}
     use(req: Request, _: Response, next: NextFunction) {
         const requestContext = {
             requestId: typeof req.id === 'string' ? req.id : String(req.id ?? 'unknown'),
             time: Date.now(),
             version: req.version,
+            metadata: {},
         };
-        this.requestContextService.run(requestContext, () => {
+        this.alsService.run(requestContext, () => {
             next();
         });
     }
@@ -35,6 +41,8 @@ export class RequestScopeMiddleware implements NestMiddleware {
 @Injectable()
 export class CorsMiddleware implements NestMiddleware {
     private readonly logger = new Logger(CorsMiddleware.name);
+
+    constructor(private readonly configService: ConfigService<AllConfig, true>) {}
 
     use(req: Request, res: Response, next: NextFunction) {
         const origin = (req.headers.origin as string) || (req.headers.referer as string);
@@ -100,7 +108,7 @@ export class CorsMiddleware implements NestMiddleware {
             return true;
         }
 
-        if (IS_DEV) {
+        if (this.configService.get('app.isDev', { infer: true })) {
             return true;
         }
 

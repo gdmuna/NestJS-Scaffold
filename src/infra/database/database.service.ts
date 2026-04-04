@@ -1,10 +1,13 @@
+import { Logger } from '@/common/services/index.js';
+
+import { AllConfig } from '@/constants/index.js';
+
+import { AlsService } from '@/infra/als/als.service.js';
+
 import { PrismaClient } from '@root/prisma/generated/client.js';
 
-import { SLOW_QUERY_THRESHOLDS } from '@/constants/index.js';
-
-import { Logger, RequestContextService } from '@/common/services/index.js';
-
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { PrismaPg } from '@prisma/adapter-pg';
 
 /**
@@ -17,8 +20,11 @@ import { PrismaPg } from '@prisma/adapter-pg';
 export class DatabaseService extends PrismaClient implements OnModuleDestroy, OnModuleInit {
     private readonly logger = new Logger(DatabaseService.name);
 
-    constructor(private readonly requestContextService: RequestContextService) {
-        const DATABASE_URL = process.env.DATABASE_URL;
+    constructor(
+        private readonly configService: ConfigService<AllConfig, true>,
+        private readonly alsService: AlsService
+    ) {
+        const DATABASE_URL = configService.get('database.databaseUrl', { infer: true });
         if (!DATABASE_URL) {
             throw new Error('DATABASE_URL environment variable is not set');
         }
@@ -53,7 +59,7 @@ export class DatabaseService extends PrismaClient implements OnModuleDestroy, On
 
         // 订阅错误事件
         this.$on('error' as never, (event: any) => {
-            const requestContext = this.requestContextService.get();
+            const requestContext = this.alsService.get();
             this.logger.error(
                 {
                     requestId: requestContext?.requestId || 'unknown',
@@ -72,7 +78,7 @@ export class DatabaseService extends PrismaClient implements OnModuleDestroy, On
 
         // 订阅警告事件
         this.$on('warn' as never, (event: any) => {
-            const requestContext = this.requestContextService.get();
+            const requestContext = this.alsService.get();
             this.logger.warn(
                 {
                     requestId: requestContext?.requestId || 'unknown',
@@ -88,84 +94,42 @@ export class DatabaseService extends PrismaClient implements OnModuleDestroy, On
     }
 
     // 处理查询事件，检测慢查询并记录日志
-    private handleQueryEvent(event: {
-        timestamp: Date;
-        query: string;
-        params: string;
-        duration: number;
-        target: string;
-    }) {
-        const requestContext = this.requestContextService.get();
-        const { query, params, target, timestamp } = event;
+    private handleQueryEvent(event: { timestamp: Date; query: string; duration: number }) {
+        const requestContext = this.alsService.get();
+        const { timestamp, query } = event;
         const duration = Math.round(event.duration);
-
-        // 解析参数（Prisma 返回的是 JSON 字符串）
-        let parsedParams: any[] = [];
-        try {
-            parsedParams = JSON.parse(params);
-        } catch {
-            parsedParams = params as any;
-        }
 
         // 构造日志上下文
         const logContext = {
             requestId: requestContext?.requestId || 'unknown',
             version: requestContext?.version || 'unknown',
             database: {
-                target, // 例如：prisma:query
+                query: this.formatSql(query),
                 duration,
                 durationUnit: 'ms',
                 timestamp: timestamp.toISOString(),
             },
-            query: {
-                sql: this.formatSql(query),
-                params: this.sanitizeParams(parsedParams),
-            },
         };
 
+        const slowQueryThreshold = this.configService.get('observability.slowQueryThreshold', {
+            infer: true,
+        });
+
         // 根据查询耗时选择日志级别
-        if (duration >= SLOW_QUERY_THRESHOLDS.error) {
+        if (duration >= slowQueryThreshold.error) {
             // 超过 500ms：error 级别
-            this.logger.error(
-                logContext,
-                `Critical slow query (${duration}ms)\n${this.formatSql(query)}`
-            );
-        } else if (duration >= SLOW_QUERY_THRESHOLDS.warn) {
+            this.logger.error(logContext, `Critical slow query (${duration}ms)`);
+        } else if (duration >= slowQueryThreshold.warn) {
             // 超过 100ms：warn 级别
-            this.logger.warn(logContext, `Slow query (${duration}ms)\n${this.formatSql(query)}`);
+            this.logger.warn(logContext, `Slow query (${duration}ms)`);
         } else {
             // 所有查询：debug 级别
             this.logger.debug(logContext, `Query executed (${duration}ms)`);
         }
     }
 
-    // 格式化 SQL 语句
     private formatSql(sql: string): string {
-        return sql
-            .split('\n') // 按行分割
-            .map((line) => line.trim()) // 每行去掉首尾空格
-            .filter((line) => line.length > 0) // 去掉空行
-            .join('\n'); // 重新组合
-    }
-    // 脱敏查询参数（避免记录敏感信息）
-    private sanitizeParams(params: any[]): any[] {
-        if (!params || params.length === 0) return [];
-
-        return params.map((param) => {
-            if (typeof param === 'string') {
-                // 检测是否为敏感字段（密码、token 等）
-                if (
-                    param.toLowerCase().includes('password') ||
-                    param.toLowerCase().includes('token') ||
-                    param.toLowerCase().includes('secret')
-                ) {
-                    return '[REDACTED]';
-                }
-                // 限制字符串长度
-                return param.length > 100 ? param.substring(0, 100) + '...' : param;
-            }
-            return param;
-        });
+        return sql.replace(/"([^"]+)"/g, '$1');
     }
 
     async onModuleDestroy() {

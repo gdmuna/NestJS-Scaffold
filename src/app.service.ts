@@ -1,31 +1,31 @@
-import { APP_VERSION } from '@/constants/index.js';
+import { Logger } from '@/common/services/index.js';
 
-import { DatabaseService } from '@/infra/database/database.service.js';
+import { AllConfig } from '@/constants/index.js';
 
-import { Logger, RequestContextService } from '@/common/services/index.js';
+import { DatabaseService, AlsService } from '@/infra/index.js';
 
 import { Injectable } from '@nestjs/common';
-import { uptime } from 'node:process';
 import { ConfigService } from '@nestjs/config';
+import { uptime } from 'node:process';
 
 @Injectable()
 export class AppService {
     private readonly logger = new Logger(AppService.name);
     constructor(
         private readonly databaseService: DatabaseService,
-        private readonly configService: ConfigService,
-        private readonly requestContextService: RequestContextService
+        private readonly configService: ConfigService<AllConfig, true>,
+        private readonly alsService: AlsService
     ) {}
 
     getHello() {
         this.logger.verbose('Handling getHello request');
-        this.requestContextService.get(); // 确保上下文已初始化
-        this.requestContextService.mergeContextMetadata({
+        this.alsService.get(); // 确保上下文已初始化
+        this.alsService.mergeContextMetadata({
             exampleKey: '666',
             ccc: { aaa: 'wtf' },
         });
-        this.requestContextService.mergeContextMetadata({ exampleKey: 'exampleValue' });
-        this.requestContextService.mergeContextMetadata({ ccc: { bbb: 'omg', aaa: '999' } });
+        this.alsService.mergeContextMetadata({ exampleKey: 'exampleValue' });
+        this.alsService.mergeContextMetadata({ ccc: { bbb: 'omg', aaa: '999' } });
         return 'Hello World!';
     }
 
@@ -34,8 +34,8 @@ export class AppService {
         return {
             status: 'ok',
             uptime: uptime(),
-            version: APP_VERSION,
-            gitCommit: this.configService.get('GIT_COMMIT', 'N/A'),
+            version: this.configService.get('app.appVersion', { infer: true }),
+            gitCommit: this.configService.get('app.gitCommit', { infer: true }),
             components: {
                 database: {
                     ...databaseHealth,

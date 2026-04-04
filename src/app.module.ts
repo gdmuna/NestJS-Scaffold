@@ -10,20 +10,16 @@ import {
 } from './app.interceptor.js';
 import { AppController, TestController } from './app.controller.js';
 import { AppService } from './app.service.js';
-import { AllExceptionsFilter } from './app.filter.js';
+import { AllExceptionFilter, ZodExceptionFilter, ThrottlerExceptionFilter } from './app.filter.js';
 
-import { ErrorCatalogModule, AuthModule } from '@/modules/index.js';
+import { ExceptionCatalogModule, AuthModule } from '@/modules/index.js';
 
-import { envSchema } from '@/common/utils/index.js';
+import allConfig, { AllConfig } from '@/constants/index.js';
 
-import { IS_DEV, IS_PROD, APP_NAME, loadEnv } from '@/constants/index.js';
-
-import { DatabaseService } from '@/infra/database/database.service.js';
-
-import { RequestContextService } from '@/common/services/index.js';
+import { DatabaseModule, AlsModule } from '@/infra/index.js';
 
 import { Module, MiddlewareConsumer, NestModule, Global } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { APP_PIPE, APP_INTERCEPTOR, APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { ZodValidationPipe, ZodSerializerInterceptor } from 'nestjs-zod';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
@@ -35,69 +31,84 @@ import pino from 'pino';
     imports: [
         ConfigModule.forRoot({
             isGlobal: true,
-            validate: () => {
-                const parsedEnvObj: Record<string, any> = {};
-                loadEnv(process.env.NODE_ENV, {
-                    processEnv: parsedEnvObj,
-                    quiet: true,
-                });
-                return envSchema.parse(parsedEnvObj);
-            },
+            // validate: () => {
+            //     const parsedEnvObj: Record<string, any> = {};
+            //     loadEnv(process.env.NODE_ENV, {
+            //         processEnv: parsedEnvObj,
+            //         quiet: true,
+            //     });
+            //     return envSchema.parse(parsedEnvObj);
+            // },
+            load: allConfig,
         }),
-        ThrottlerModule.forRoot([
-            {
-                name: 'global',
-                ttl: 60000, // 1分钟
-                limit: IS_DEV ? 500 : 100,
-            },
-            {
-                name: 'strict',
-                ttl: 60000, // 1分钟
-                limit: IS_DEV ? 100 : 20, // 登录、支付等敏感操作
-            },
-            {
-                name: 'public',
-                ttl: 300000, // 5分钟
-                limit: IS_DEV ? Infinity : 1000, // 公开 API，较宽松
-            },
-        ]),
-        LoggerModule.forRoot({
-            pinoHttp: [
-                {
-                    name: APP_NAME,
-                    level: process.env.LOG_LEVEL || (!IS_PROD ? 'trace' : 'info'),
-                    // prettier-ignore
-                    transport:
-                    IS_DEV ? {
-                        target: 'pino-pretty',
-                        options: {
-                            sync: true,
-                            colorize: true,
-                            translateTime: 'SYS:yyyy-mm-dd HH:MM:ss.l',
-                            // messageFormat: '{if req.method}[{req.method}]({req.url}){end} {if context}{context} - {end}{msg}',
-                        },
-                    } : undefined,
-                    serializers: {
-                        err: () => undefined, // 错误堆栈交由 exceptions.filter 处理，避免重复记录
-                        req: () => undefined, // 请求信息交由 performance.interceptor 处理，避免重复记录
+        ThrottlerModule.forRootAsync({
+            inject: [ConfigService],
+            useFactory: (configService: ConfigService<AllConfig, true>) => {
+                const { isDev } = configService.get('app', { infer: true });
+                return [
+                    {
+                        name: 'global',
+                        ttl: 60000, // 1分钟
+                        limit: isDev ? 500 : 100,
                     },
-                    // prettier-ignore
-                    // 全局隐藏敏感信息
-                    redact:
-                    !IS_DEV ? {
-                        paths: ['*.headers.authorization'],
-                        censor: '[REDACTED]',
-                    } : undefined,
-                    autoLogging: false,
-                },
-                pino.destination({
-                    dest: './logs/app.log',
-                    sync: false, // 异步写入
-                    mkdir: true,
-                }),
-            ],
+                    {
+                        name: 'strict',
+                        ttl: 60000, // 1分钟
+                        limit: isDev ? 100 : 20, // 登录、支付等敏感操作
+                    },
+                    {
+                        name: 'public',
+                        ttl: 300000, // 5分钟
+                        limit: isDev ? Infinity : 1000, // 公开 API，较宽松
+                    },
+                ];
+            },
         }),
-        ErrorCatalogModule,
+        LoggerModule.forRootAsync({
+            inject: [ConfigService],
+            useFactory: (configService: ConfigService<AllConfig, true>) => {
+                const { isDev, isProd, appName } = configService.get('app', { infer: true });
+                return {
+                    pinoHttp: [
+                        {
+                            name: appName,
+                            level: process.env.LOG_LEVEL || (!isProd ? 'trace' : 'info'),
+                            // prettier-ignore
+                            transport:
+                            isDev ? {
+                                target: 'pino-pretty',
+                                options: {
+                                    sync: true,
+                                    colorize: true,
+                                    translateTime: 'SYS:yyyy-mm-dd HH:MM:ss.l',
+                                    // messageFormat: '{if req.method}[{req.method}]({req.url}){end} {if context}{context} - {end}{msg}',
+                                },
+                            } : undefined,
+                            serializers: {
+                                err: () => undefined, // 错误堆栈交由 exceptions.filter 处理，避免重复记录
+                                req: () => undefined, // 请求信息交由 performance.interceptor 处理，避免重复记录
+                            },
+                            // prettier-ignore
+                            // 全局隐藏敏感信息
+                            redact:
+                            !isDev ? {
+                                paths: ['*.headers.authorization'],
+                                censor: '[REDACTED]',
+                            } : undefined,
+                            autoLogging: false,
+                        },
+                        pino.destination({
+                            dest: './logs/app.log',
+                            sync: false, // 异步写入
+                            mkdir: true,
+                        }),
+                    ],
+                };
+            },
+        }),
+        AlsModule,
+        DatabaseModule,
+        ExceptionCatalogModule,
         AuthModule,
     ],
     controllers: [AppController, TestController],
@@ -127,14 +138,23 @@ import pino from 'pino';
             useClass: ZodValidationPipe,
         },
         AppService,
-        DatabaseService,
-        RequestContextService,
+        // Filters — 注册顺序决定 LIFO 执行顺序
+        // AllExceptionsFilter 最先注册 = 最后执行 = 兜底所有未匹配异常
+        // ZodExceptionFilter / ThrottlerExceptionFilter 后注册 = 优先执行各自匹配的异常类型
         {
             provide: APP_FILTER,
-            useClass: AllExceptionsFilter,
+            useClass: AllExceptionFilter,
+        },
+        {
+            provide: APP_FILTER,
+            useClass: ZodExceptionFilter,
+        },
+        {
+            provide: APP_FILTER,
+            useClass: ThrottlerExceptionFilter,
         },
     ],
-    exports: [RequestContextService],
+    exports: [AlsModule, DatabaseModule],
 })
 export class AppModule implements NestModule {
     configure(consumer: MiddlewareConsumer) {

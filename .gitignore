@@ -147,6 +147,7 @@ pnpm-lock.yaml
 # Prisma
 prisma/generated/
 
-.obsidian
+**/.obsidian
 
-config
+config/keys/*
+!config/keys/.gitkeep

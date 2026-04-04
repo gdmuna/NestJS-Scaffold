@@ -1,17 +1,15 @@
 import { AppController } from '@/app.controller.js';
 import { AppService } from '@/app.service.js';
 
-import { loadEnv } from '@/constants/index.js';
-
-import { RequestContextService } from '@/common/services/index.js';
-
 import { DatabaseService } from '@/infra/database/database.service.js';
 
-import { ConfigService } from '@nestjs/config';
+import allConfig from '@/constants/index.js';
+
+import { AlsService } from '@/infra/index.js';
+
+import { ConfigModule } from '@nestjs/config';
 import { Test, TestingModule } from '@nestjs/testing';
 import { PinoLogger } from 'nestjs-pino';
-
-loadEnv('test', { quiet: true });
 
 // Mock PinoLogger
 const mockPinoLogger = {
@@ -29,12 +27,17 @@ describe('AppController (unit)', () => {
 
     beforeEach(async () => {
         module = await Test.createTestingModule({
+            imports: [
+                ConfigModule.forRoot({
+                    isGlobal: true,
+                    load: allConfig,
+                }),
+            ],
             controllers: [AppController],
             providers: [
                 AppService,
                 DatabaseService,
-                ConfigService,
-                RequestContextService,
+                AlsService,
                 {
                     provide: PinoLogger,
                     useValue: mockPinoLogger,

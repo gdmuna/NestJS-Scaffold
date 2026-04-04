@@ -4,11 +4,15 @@ GREEN="\033[32m"; YELLOW="\033[33m"; RESET="\033[0m"
 
 printf "%-12b  %b\n" "\n${GREEN}[GitHook]" "[LOG] 执行 Pre-commit hook...${RESET}"
 
-# 加密环境变量，以防忘记加密
-dotenvx encrypt -f .env.development -f .env.test -f .env.production
+# 记录已暂存的 env 文件（排除 .env.keys 和 .env.example）
+staged_env_files=$(git diff --cached --name-only -- '.env.*' '!.env.keys' '!.env.example')
 
-# 将加密后的环境变量文件添加到暂存区
-git add .env.development .env.test .env.production
+# 如果有暂存的 env 文件，先加密它们
+if [ -n "$staged_env_files" ]; then
+    # 加密环境变量，以防忘记加密
+    pnpm dotenvx encrypt -f $staged_env_files
+    git add $staged_env_files
+fi
 
 if git diff --cached --quiet; then
     printf "%-12b  %b\n" "${YELLOW}[GitHook]" "[WARN] 无暂存文件，跳出 Pre-commit hooks${RESET}"

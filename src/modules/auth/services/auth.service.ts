@@ -3,10 +3,13 @@ import { TokenService } from './token.service.js';
 
 import { DatabaseService } from '@/infra/database/database.service.js';
 
-import { BusinessException } from '@/common/exceptions/index.js';
+import {
+    DuplicateUserException,
+    InvalidCredentialsException,
+    InvalidTokenException,
+} from '../auth.exception.js';
 
 import { Injectable } from '@nestjs/common';
-import { HttpStatus } from '@nestjs/common';
 import bcrypt from 'bcryptjs';
 
 interface AuthResult {
@@ -49,11 +52,7 @@ export class AuthService {
         });
 
         if (duplicateUser) {
-            throw new BusinessException(
-                'Username or email already exists',
-                'AUTH_DUPLICATE_USER',
-                HttpStatus.CONFLICT
-            );
+            throw new DuplicateUserException();
         }
 
         const passwordHash = await bcrypt.hash(payload.password, 10);
@@ -95,12 +94,12 @@ export class AuthService {
     async login(payload: LoginDto): Promise<AuthResult> {
         const user = await this.findUserByAccount(payload.account);
         if (!user) {
-            throw this.createUnauthorizedException();
+            throw new InvalidCredentialsException();
         }
 
         const isPasswordValid = await bcrypt.compare(payload.password, user.passwordHash);
         if (!isPasswordValid) {
-            throw this.createUnauthorizedException();
+            throw new InvalidCredentialsException();
         }
 
         const tokens = this.tokenService.issueTokenPair({
@@ -130,13 +129,13 @@ export class AuthService {
     async rotateRefreshToken(refreshToken: string) {
         const refreshClaim = this.tokenService.verifyToken(refreshToken, 'refresh');
         if (!refreshClaim) {
-            throw this.createUnauthorizedException('Invalid refresh token');
+            throw new InvalidTokenException();
         }
         const user = await this.databaseService.user.findUnique({
             where: { id: refreshClaim.sub },
         });
         if (!user) {
-            throw this.createUnauthorizedException('User not found');
+            throw new InvalidTokenException();
         }
         return this.tokenService.issueTokenPair({
             userId: user.id,
@@ -163,17 +162,5 @@ export class AuthService {
                 ],
             },
         });
-    }
-
-    /**
-     * 创建统一的未授权业务异常。
-     *
-     * @param message 异常消息。
-     * @returns 未授权业务异常实例。
-     * @example
-     * throw authService['createUnauthorizedException']('Invalid token');
-     */
-    private createUnauthorizedException(message = 'Unauthorized') {
-        return new BusinessException(message, 'AUTH_FAILED', HttpStatus.UNAUTHORIZED);
     }
 }

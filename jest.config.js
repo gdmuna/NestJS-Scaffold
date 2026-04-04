@@ -28,9 +28,6 @@ export default {
 
     // ===== ts-jest 配置 =====
 
-    // 将 .ts 文件视为 ESM 模块
-    extensionsToTreatAsEsm: ['.ts'],
-
     transform: {
         '^.+\\.tsx?$': [
             // 匹配 .ts 和 .tsx 文件
@@ -39,7 +36,7 @@ export default {
                 useESM: true, // ESM 模式
                 tsconfig: {
                     module: 'ESNext',
-                    moduleResolution: 'node',
+                    moduleResolution: 'nodenext',
                     target: 'ESNext',
                 },
             },

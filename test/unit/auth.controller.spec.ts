@@ -1,11 +1,9 @@
 import { AuthController } from '@/modules/auth/auth.controller.js';
 import { AuthService } from '@/modules/auth/services/auth.service.js';
 
-import { REFRESH_TOKEN_COOKIE, loadEnv } from '@/constants/index.js';
+import { REFRESH_TOKEN_COOKIE } from '@/constants/index.js';
 
-import { RequestContextService } from '@/common/services/request-context.service.js';
-
-loadEnv('test', { quiet: true });
+import { AlsService } from '@/infra/index.js';
 
 const mockAuthService = {
     register: jest.fn(),
@@ -13,7 +11,7 @@ const mockAuthService = {
     rotateRefreshToken: jest.fn(),
 };
 
-const mockRequestContextService = {
+const mockAlsService = {
     get: jest.fn(),
 };
 
@@ -24,7 +22,7 @@ describe('AuthController (unit)', () => {
         jest.clearAllMocks();
         controller = new AuthController(
             mockAuthService as unknown as AuthService,
-            mockRequestContextService as unknown as RequestContextService
+            mockAlsService as unknown as AlsService
         );
     });
 

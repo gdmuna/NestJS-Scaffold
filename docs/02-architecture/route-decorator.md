@@ -1,0 +1,231 @@
+---
+title: 路由契约装饰器设计
+inherits: docs/02-architecture/STANDARD.md
+status: active
+version: "0.6.1"
+last-updated: 2026-03-31
+category: architecture
+related:
+  - docs/02-architecture/STANDARD.md
+  - docs/02-architecture/exception-system.md
+  - docs/02-architecture/openapi-enrichment.md
+  - docs/02-architecture/request-pipeline.md
+  - docs/02-architecture/auth-module.md
+---
+
+# 路由契约装饰器设计
+
+本文档描述 `@ApiRoute()` 复合装饰器的完整设计，涵盖元数据键体系、认证策略声明、错误码绑定、消费层分工，以及与现有代码的向后兼容策略。
+
+---
+
+## 1. 设计动机
+
+当前每个控制器方法需要手工组合多个独立装饰器：
+
+```typescript
+@Post('login')
+@Public()                            // 认证策略
+@Throttle({ strict: {} })            // 限流级别
+@ApiOperation({ summary: '...' })    // Swagger 操作说明
+@ApiResponse({ status: 200, ... })   // 成功响应
+@ApiResponse({ status: 401, ... })   // 失败响应（手工维护，与运行时无关联）
+@ApiResponse({ status: 429, ... })   // 失败响应（与 ThrottlerGuard 不关联）
+```
+
+这套组合存在三个结构性问题：
+
+| 问题 | 具体表现 |
+|------|---------|
+| 声明分散 | 认证策略、限流、文档、错误分散在 4–6 个独立装饰器中，无法作为整体阅读 |
+| 运行时与文档脱节 | `@ApiResponse({ status: 401 })` 是死字符串，与 Guard 实际抛出的异常没有类型约束关系 |
+| 重复维护 | 新增路由时需要人工叠加每个装饰器，漏写某个不会有编译期报错 |
+
+`@ApiRoute()` 将"路由的契约意图"收归一处：一次声明，在 Guard、Swagger 富化器、运行时追踪等消费层各自分发。
+
+---
+
+## 2. 核心概念：路由契约
+
+**路由契约** = 一个路由对外承诺的完整约定，包括：
+
+1. **认证策略**：谁能访问？需要什么身份？
+2. **成功响应**：正常情况下返回什么结构、什么状态码？
+3. **失败集合**：该路由可能抛出哪些已知业务错误？
+4. **元信息**：操作名、描述、是否废弃（供 Swagger 展示）
+
+装饰器只负责声明契约，不执行任何业务逻辑。各消费层独立读取元数据，按自己的职责处理。
+
+---
+
+## 3. 认证策略
+
+```typescript
+/**
+ * - 'public'   无需 Token，完全公开（注册、登录等）
+ * - 'optional' 有 Token 则解析挂载，无 Token 也放行（游客可用的展示接口）
+ * - 'required' 必须携带有效 Token，否则 401（默认值）
+ */
+type AuthStrategy = 'public' | 'optional' | 'required';
+```
+
+`AuthGuard` 通过 `Reflector.getAllAndOverride(ROUTE_AUTH_KEY, ...)` 读取策略后执行不同分支，替代现在只有 `isPublic` 布尔值的逻辑。
+
+---
+
+## 4. 装饰器选项接口
+
+```typescript
+interface ApiRouteOptions {
+    /** 接口摘要，在 Swagger 操作标题展示（必填） */
+    summary: string;
+
+    /** 接口详细描述，支持 Markdown */
+    description?: string;
+
+    /**
+     * 成功响应的 DTO 类型。
+     * openapi-enricher 读取后自动将其包裹进统一成功包络：
+     * { success: true, data: <responseType>, timestamp, context }
+     */
+    responseType?: Type<unknown>;
+
+    /** 成功响应的 HTTP 状态码（默认 200） */
+    successStatus?: number;
+
+    /**
+     * 该路由可能抛出的业务错误码，类型约束为 keyof ERROR_CATALOG。
+     *
+     * 以下错误无需手工声明，装饰器自动追加：
+     * - REQUEST_TIMEOUT（所有路由）
+     * - RATE_LIMIT_EXCEEDED（所有路由）
+     * - INTERNAL_SERVER_ERROR（所有路由）
+     * - UNAUTHORIZED（auth='required' 时）
+     */
+    errors?: Array<keyof typeof ERROR_CATALOG>;
+
+    /** 认证策略（默认 'required'） */
+    auth?: AuthStrategy;
+
+    /** 标记接口为已废弃 */
+    deprecated?: boolean;
+}
+```
+
+`errors` 字段的类型约束是整个设计的关键：编译期保证声明的错误码真实存在于注册表，运行时加载时如果注册表与 Filter 实际处理不一致即可发现。
+
+---
+
+## 5. 元数据键体系
+
+| 键常量 | 值 | 消费方 |
+|-------|----|--------|
+| `ROUTE_AUTH_KEY` | `'route:auth'` | `AuthGuard`（Reflector 读取） |
+| `ROUTE_ERRORS_KEY` | `'route:errors'` | `openapi-enricher`（文档生成阶段）、启动期校验器（可选） |
+| `IS_PUBLIC_KEY` | `'auth:isPublic'`（现有） | `AuthGuard`（向后兼容，当 `auth !== 'required'` 时写入 `true`） |
+
+`IS_PUBLIC_KEY` 的保留是为了确保改造期间未迁移的旧路由继续正常工作，`ROUTE_AUTH_KEY` 是新路径，两者共存直到旧路由完成迁移。
+
+---
+
+## 6. 装饰器的展开规则
+
+`@ApiRoute(options)` 在编译期展开为以下装饰器的等价组合（展开顺序不得依赖副作用）：
+
+```
+SetMetadata(ROUTE_AUTH_KEY, auth)
+SetMetadata(ROUTE_ERRORS_KEY, allErrors)       ← 含自动追加的基础错误
+SetMetadata(IS_PUBLIC_KEY, auth !== 'required') ← 向后兼容
+
+ApiOperation({ summary, description, deprecated })
+
+// 按状态码分组，每组一个 @ApiResponse 条目，多个错误以 examples 区分
+ApiResponse({ status: 401, ... })
+ApiResponse({ status: 429, ... })
+ApiResponse({ status: 408, ... })
+ApiResponse({ status: 500, ... })
+
+// 有成功响应类型时
+ApiResponse({ status: successStatus ?? 200, type: responseType })
+
+// 需要认证时（auth !== 'public'）
+ApiBearerAuth('access-token')
+```
+
+**自动追加规则**：
+
+| 条件 | 自动加入 `allErrors` |
+|------|---------------------|
+| 所有路由 | `REQUEST_TIMEOUT`、`RATE_LIMIT_EXCEEDED`、`INTERNAL_SERVER_ERROR` |
+| `auth === 'required'` | `UNAUTHORIZED` |
+
+手工声明的错误码优先，自动追加的错误码不重复添加。
+
+---
+
+## 7. 消费层分工
+
+`@ApiRoute()` 只写入元数据，以下各层独立消费，职责不交叉：
+
+| 消费层 | 读取的元数据键 | 职责 |
+|--------|-------------|------|
+| `AuthGuard` | `ROUTE_AUTH_KEY`（含 `IS_PUBLIC_KEY` 兜底）| 决定是否放行请求 |
+| `openapi-enricher`（文档生成阶段）| `ROUTE_ERRORS_KEY` + 已有 `ApiResponse` | 生成错误文档示例、包裹成功包络 |
+| 启动期校验器（可选扩展）| `ROUTE_ERRORS_KEY` | 验证声明的错误码均已在 `ErrorRegistry` 注册 |
+| 运行时追踪（可选扩展） | `ROUTE_ERRORS_KEY` | 在响应中附加路由契约版本，方便调试 |
+
+> `ResponseFormatInterceptor` 和 `AllExceptionsFilter` **不**消费路由元数据，它们处理的是运行时结果，与声明无关。
+
+---
+
+## 8. 与 `exception-system` 的集成点
+
+`@ApiRoute` 的 `errors` 字段与 [exception-system.md](exception-system.md) 的错误码体系共享同一类型来源：
+
+```
+                  错误码注册表（ERROR_CATALOG / ErrorRegistry）
+                         │
+          ┌──────────────┼────────────────────┐
+          ▼              ▼                    ▼
+    @ApiRoute.errors   Filter 运行时       ErrorCatalogController
+    （编译期约束）      （匹配已知错误）     （文档 URL 生成）
+```
+
+当 `exception-system` 中新增错误码时，`@ApiRoute` 的类型会自动扩展，开发者在声明 `errors` 时可以在 IDE 中直接看到新增选项。
+
+---
+
+## 9. 向后兼容策略
+
+迁移分为两个阶段，不要求一次性改完所有路由：
+
+**阶段一**：`@ApiRoute()` 与原有装饰器并存
+- 新路由统一使用 `@ApiRoute()`
+- 旧路由保持原有 `@Public()` + `@ApiOperation()` 组合不变
+- `AuthGuard` 优先检查 `ROUTE_AUTH_KEY`，无则降级检查 `IS_PUBLIC_KEY`
+
+**阶段二**：逐模块迁移
+- 每个模块完成迁移后，移除旧的独立装饰器引用
+- 全部迁移完成后，`IS_PUBLIC_KEY` 兼容层可安全删除
+
+---
+
+## 10. 目录结构
+
+```
+src/
+└── common/
+    └── decorators/
+        ├── auth.decorator.ts    ← 保留现有 @Public / IS_PUBLIC_KEY（兼容层）
+        ├── route.decorator.ts   ← 新增：@ApiRoute + ROUTE_AUTH_KEY + ROUTE_ERRORS_KEY
+        └── index.ts             ← re-export 两者
+```
+
+---
+
+## 引用
+
+- [异常系统设计](exception-system.md)
+- [OpenAPI 自动富化](openapi-enrichment.md)
+- [请求生命周期](request-pipeline.md)
+- [认证模块](auth-module.md)

@@ -1,13 +1,10 @@
-import { loadEnv } from '@/constants/index.js';
-
-import { BusinessException } from '@/common/exceptions/index.js';
+import { DuplicateUserException, InvalidTokenException } from '@/modules/auth/auth.exception.js';
 
 import { AuthService } from '@/modules/auth/services/auth.service.js';
 import { TokenService } from '@/modules/auth/services/token.service.js';
 import { LoginDto } from '@/modules/auth/auth.dto.js';
-import bcrypt from 'bcryptjs';
 
-loadEnv('test', { quiet: true });
+import bcrypt from 'bcryptjs';
 
 describe('AuthService', () => {
     const passwordHash = bcrypt.hashSync('P@ssw0rd!', 10);
@@ -99,7 +96,7 @@ describe('AuthService', () => {
                 email: 'new@example.com',
                 password: 'P@ssw0rd!',
             })
-        ).rejects.toBeInstanceOf(BusinessException);
+        ).rejects.toBeInstanceOf(DuplicateUserException);
     });
 
     it('rotateRefreshToken should rotate token once', async () => {
@@ -130,7 +127,7 @@ describe('AuthService', () => {
         mockTokenService.verifyToken.mockReturnValue(null);
 
         await expect(service.rotateRefreshToken('invalid_refresh_token')).rejects.toBeInstanceOf(
-            BusinessException
+            InvalidTokenException
         );
 
         expect(mockDatabaseService.user.findUnique).not.toHaveBeenCalled();

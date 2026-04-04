@@ -1,6 +1,8 @@
-import { SLOW_REQUEST_THRESHOLDS } from '@/constants/index.js';
+import { Logger } from '@/common/services/index.js';
 
-import { Logger, RequestContextService } from '@/common/services/index.js';
+import { AllConfig } from '@/constants/index.js';
+
+import { AlsService } from '@/infra/als/als.service.js';
 
 import {
     Injectable,
@@ -9,6 +11,7 @@ import {
     CallHandler,
     RequestTimeoutException,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Request, Response } from 'express';
 import { map } from 'rxjs/operators';
 import { throwError, TimeoutError } from 'rxjs';
@@ -23,6 +26,8 @@ import { catchError, timeout } from 'rxjs/operators';
 @Injectable()
 export class PerformanceInterceptor implements NestInterceptor {
     private readonly logger = new Logger(PerformanceInterceptor.name);
+
+    constructor(private readonly configService: ConfigService<AllConfig, true>) {}
 
     intercept(context: ExecutionContext, next: CallHandler) {
         const ctx = context.switchToHttp();
@@ -69,6 +74,11 @@ export class PerformanceInterceptor implements NestInterceptor {
         logContext.http.durationUnit = 'ms';
         logContext.http.hasError = hasError;
 
+        const SLOW_REQUEST_THRESHOLDS = this.configService.get(
+            'observability.slowRequestThreshold',
+            { infer: true }
+        );
+
         // 根据耗时和状态码选择日志级别
         if (duration >= SLOW_REQUEST_THRESHOLDS.error) {
             // 超过 3 秒：error 级别
@@ -89,12 +99,12 @@ export class PerformanceInterceptor implements NestInterceptor {
 
 @Injectable()
 export class ResponseFormatInterceptor implements NestInterceptor {
-    constructor(private readonly requestContextService: RequestContextService) {}
+    constructor(private readonly alsService: AlsService) {}
 
     intercept(_: ExecutionContext, next: CallHandler) {
         return next.handle().pipe(
             map((data) => {
-                const requestContext = this.requestContextService.get() ?? null;
+                const requestContext = this.alsService.get() ?? null;
                 return {
                     success: true,
                     data: data ?? null,

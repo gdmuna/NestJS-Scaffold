@@ -1,22 +1,22 @@
 import { AccessTokenDto, AuthResponseDto, LoginDto, RegisterDto } from './auth.dto.js';
+import AUTH_EXCEPTION from './auth.exception.js';
 import { AuthService } from './services/auth.service.js';
+
+import { Public } from '@/common/decorators/index.js';
+import { extractRefreshTokenFromRequest } from '@/common/utils/index.js';
 
 import { REFRESH_TOKEN_COOKIE } from '@/constants/auth.constant.js';
 
-import { Public } from '@/common/decorators/index.js';
-import { BusinessException } from '@/common/exceptions/index.js';
-import { extractRefreshTokenFromRequest } from '@/common/utils/index.js';
-import { RequestContextService } from '@/common/services/request-context.service.js';
+import { AlsService } from '@/infra/index.js';
 
 import { Controller, Post, Body, Req, Res, Get } from '@nestjs/common';
-import { HttpStatus } from '@nestjs/common';
 import type { Request, Response } from 'express';
 
 @Controller('auth')
 export class AuthController {
     constructor(
         private readonly authService: AuthService,
-        private readonly requestContextService: RequestContextService
+        private readonly alsService: AlsService
     ) {}
 
     @Post('register')
@@ -65,11 +65,9 @@ export class AuthController {
     ): Promise<AccessTokenDto> {
         const refreshToken = extractRefreshTokenFromRequest(request);
         if (!refreshToken) {
-            throw new BusinessException(
-                'Refresh token is required',
-                'AUTH_FAILED',
-                HttpStatus.UNAUTHORIZED
-            );
+            throw new AUTH_EXCEPTION.MissingTokenException({
+                message: 'Refresh token is required',
+            });
         }
 
         const tokenPair = await this.authService.rotateRefreshToken(refreshToken);

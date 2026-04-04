@@ -1,2 +1,2 @@
 export * from './auth/auth.module.js';
-export * from './error-catalog/error-catalog.module.js';
+export * from './exception-catalog/exception-catalog.module.js';

@@ -5,8 +5,7 @@ import { DatabaseService } from '@/infra/database/database.service.js';
 import { Public } from '@/common/decorators/index.js';
 import { Logger } from '@/common/services/index.js';
 
-import { Controller, Get } from '@nestjs/common';
-import { Body, Post, HttpStatus, HttpException } from '@nestjs/common';
+import { Controller, Get, Body, Post, HttpStatus, HttpException } from '@nestjs/common';
 import { PinoLogger } from 'nestjs-pino';
 
 @Controller()

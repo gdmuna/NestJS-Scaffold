@@ -1,6 +1,6 @@
-import { IS_DEV } from '@/constants/index.js';
-
 import { ConsoleFormatter } from '@/common/utils/index.js';
+
+import { IS_DEV } from '@/constants/index.js';
 
 import { Injectable } from '@nestjs/common';
 import { Logger as NestLogger } from '@nestjs/common';
