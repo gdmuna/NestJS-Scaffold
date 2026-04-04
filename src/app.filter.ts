@@ -68,9 +68,10 @@ abstract class BaseExceptionFilter implements ExceptionFilter {
             this.logger[exception.logLevel](logContext, message);
         }
 
+        // prettier-ignore
         const docsUrl =
-            ErrorRegistry.get(exception.code)?.docsPath ??
-            `${API_DOCS_BASE_URL}/errors/${exception.code}`;
+            ErrorRegistry.get(exception.code)?.docsPath
+            ?? `${API_DOCS_BASE_URL}/${exception.code}`;
 
         if (exception.retryAfterMs !== undefined) {
             response.setHeader('Retry-After', Math.ceil(exception.retryAfterMs / 1000));

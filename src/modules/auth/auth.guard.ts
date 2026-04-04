@@ -1,6 +1,6 @@
 import { TokenService } from './services/index.js';
 
-import { IS_PUBLIC_KEY } from '@/common/decorators/index.js';
+import { AUTH_STRATEGY_KEY, AUTH_STRATEGY_TYPE } from '@/common/decorators/index.js';
 import { extractAccessTokenFromRequest } from '@/common/utils/index.js';
 import { InvalidTokenException, MissingTokenException } from './auth.exception.js';
 
@@ -18,21 +18,22 @@ export class AuthGuard implements CanActivate {
     canActivate(context: ExecutionContext) {
         const request = context.switchToHttp().getRequest<Request>();
 
-        const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
-            context.getHandler(),
-            context.getClass(),
-        ]);
+        const authStrategy = this.reflector.getAllAndOverride<AUTH_STRATEGY_TYPE>(
+            AUTH_STRATEGY_KEY,
+            [context.getHandler(), context.getClass()]
+        );
 
         const accessToken = extractAccessTokenFromRequest(request);
 
-        if (isPublic) {
+        if (authStrategy === 'public') return true;
+
+        if (authStrategy === 'optional') {
             if (!accessToken) return true;
 
             const claim = this.tokenService.verifyToken(accessToken, 'access');
-            if (claim) {
-                request.jwtClaim = claim;
-            }
+            if (!claim) return true;
 
+            request.jwtClaim = claim;
             return true;
         }
 

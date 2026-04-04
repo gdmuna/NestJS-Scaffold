@@ -21,7 +21,7 @@ export const SLOW_QUERY_THRESHOLD = {
     },
 } as const;
 
-export const API_DOCS_BASE_URL = process.env.API_DOCS_BASE_URL || 'https://api.example.com';
+export const API_DOCS_BASE_URL = process.env.API_DOCS_BASE_URL || 'https://api.example.com/errors';
 
 const ObservabilityConfigValidateSchema = z
     .object({
@@ -29,7 +29,7 @@ const ObservabilityConfigValidateSchema = z
         SLOW_REQUEST_ERROR_MS: z.coerce.number().default(3000),
         SLOW_QUERY_WARN_MS: z.coerce.number().default(100),
         SLOW_QUERY_ERROR_MS: z.coerce.number().default(500),
-        API_DOCS_BASE_URL: z.url().default('https://api.example.com'),
+        API_DOCS_BASE_URL: z.url().default('https://api.example.com/errors'),
     })
     .transform((env) => ({
         slowRequestThreshold: {

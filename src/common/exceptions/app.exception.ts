@@ -44,6 +44,7 @@ export interface RuntimeContext<TDetails = unknown> {
  */
 export abstract class AppException<TDetails = unknown> extends HttpException {
     readonly code: string;
+    static readonly code: string;
     readonly logLevel: StaticMeta['logLevel'];
     readonly retryable: boolean;
     readonly retryAfterMs?: number;

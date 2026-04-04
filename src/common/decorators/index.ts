@@ -1,1 +1,1 @@
-export * from './auth.decorator.js';
+export * from './route.decorator.js';

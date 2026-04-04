@@ -25,7 +25,7 @@ describe('AuthGuard', () => {
     });
 
     it('should allow public route without token', () => {
-        reflector.getAllAndOverride.mockReturnValue(true);
+        reflector.getAllAndOverride.mockReturnValue('public');
 
         const request: any = { headers: {} };
         const result = guard.canActivate(createContext(request));
@@ -35,7 +35,7 @@ describe('AuthGuard', () => {
     });
 
     it('should attach user on private route with valid token', () => {
-        reflector.getAllAndOverride.mockReturnValue(false);
+        reflector.getAllAndOverride.mockReturnValue('required');
         tokenService.verifyToken.mockReturnValue({
             sub: 'u_1',
             tokenType: 'access',
@@ -53,7 +53,7 @@ describe('AuthGuard', () => {
     });
 
     it('should throw on private route with invalid token', () => {
-        reflector.getAllAndOverride.mockReturnValue(false);
+        reflector.getAllAndOverride.mockReturnValue('required');
         tokenService.verifyToken.mockReturnValue(null);
 
         const request: any = { headers: { authorization: 'Bearer bad-token' } };

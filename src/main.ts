@@ -1,5 +1,7 @@
 import { APP_VERSION, APP_AUTHOR } from '@/constants/index.js';
 
+import '@/common/exceptions/index.js'; // 全局注册异常
+
 import { AppModule } from './app.module.js';
 
 import { Logger } from '@/common/services/index.js';
@@ -11,6 +13,7 @@ import { Logger as pinoLogger } from 'nestjs-pino';
 import helmet from 'helmet';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { cleanupOpenApiDoc } from 'nestjs-zod';
+import { wrapSuccessResponses } from '@/common/utils/openapi-envelope.js';
 import cookieParser from 'cookie-parser';
 
 async function bootstrap() {
@@ -26,10 +29,11 @@ async function bootstrap() {
         .setTitle('Nestjs-Demo-Basic API')
         .setDescription('The API description')
         .setVersion('1.0')
-        .addBearerAuth({ type: 'http', scheme: 'bearer', bearerFormat: 'JWT' }, 'access-token')
+        .addBearerAuth({ type: 'http', scheme: 'bearer', bearerFormat: 'JWT' }, 'accessToken')
         .build();
     const documentFactory = SwaggerModule.createDocument(app, docConfig);
-    SwaggerModule.setup('api-doc', app, cleanupOpenApiDoc(documentFactory));
+    const processedDoc = wrapSuccessResponses(cleanupOpenApiDoc(documentFactory));
+    SwaggerModule.setup('api-doc', app, processedDoc);
 
     const port = parseInt(process.env.PORT ?? '3000');
     await app.listen(port).catch(async (err) => {

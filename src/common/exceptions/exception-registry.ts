@@ -49,12 +49,13 @@ export const EXCEPTION_META_KEY = Symbol('exception:meta');
  * export class DuplicateUserException extends ResourceException {}
  */
 export function RegisterException<TCode extends string>(meta: StaticMeta<TCode>): ClassDecorator {
-    return (target) => {
+    return (target: any) => {
         if (_registry.has(meta.code)) {
             throw new Error(
                 `重复注册错误码 "${meta.code}"` + `，请检查 ${target.name} 与已注册类是否命名冲突`
             );
         }
+        target.code = meta.code;
         _registry.set(meta.code, meta);
         Reflect.defineMetadata(EXCEPTION_META_KEY, meta, target);
     };
