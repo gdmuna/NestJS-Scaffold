@@ -146,3 +146,6 @@ prisma/generated/
 
 config/keys/*
 !config/keys/.gitkeep
+
+
+**/openapi.json
