@@ -87,6 +87,7 @@ jobs:
         run: |
           echo "DATABASE_URL=postgresql://ci_test:ci_test_password@localhost:5432/nestjs_demo_basic_test?schema=public" >> "$GITHUB_ENV"
           echo "SHADOW_DATABASE_URL=postgresql://ci_test:ci_test_password@localhost:5432/nestjs_demo_basic_shadow?schema=public" >> "$GITHUB_ENV"
+          echo "PORT=3000" >> "$GITHUB_ENV"
 
       - name: Create shadow database
         run: |
