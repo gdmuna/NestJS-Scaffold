@@ -2,8 +2,8 @@
 title: 可观测性
 inherits: docs/02-architecture/STANDARD.md
 status: active
-version: "0.5.3"
-last-updated: 2026-03-26
+version: "0.7.1"
+last-updated: 2026-04-06
 category: architecture
 related:
   - docs/02-architecture/STANDARD.md

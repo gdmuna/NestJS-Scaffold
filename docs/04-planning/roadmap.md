@@ -41,7 +41,6 @@ related:
 
 **目标**：修复 v0.7.0 上线后暴露的 CI/CD、脚本和文档构建问题，无功能性变更。
 
-- [x] **PostgreSQL 健康检查修复**：`pg_isready` 补充 `-U ci_test -d nestjs_demo_basic_test` 参数；新增 `--health-start-period 30s`；间隔 10s→5s，重试 5→10；增加显式等待步骤，连接改用 `127.0.0.1` 绕开 IPv6 优先解析（影响 `ci-reusable.yaml`、`cd-dev.yaml`、`cd-prod.yaml`）
 - [x] **CI Release 分支触发修复**：`ci-release.yaml` 分支模式 `release-[0-9]*` 改为 `release/**`，匹配实际 `release/X.Y` 命名规范
 - [x] **版本验证脚本修复**：`scripts/validate-release-version.cjs` 正则由 `release-X.Y` 改为 `release/X.Y` 格式
 - [x] **VitePress 构建修复**：`pr-0.7.0.md` frontmatter `head: dev` 重命名为 `branch: dev`，消除与 VitePress 保留字段的冲突

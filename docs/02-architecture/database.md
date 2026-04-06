@@ -2,8 +2,8 @@
 title: 数据库层
 inherits: docs/02-architecture/STANDARD.md
 status: active
-version: "0.5.3"
-last-updated: 2026-03-26
+version: "0.7.1"
+last-updated: 2026-04-06
 category: architecture
 related:
   - docs/02-architecture/STANDARD.md
@@ -94,15 +94,17 @@ flowchart TD
 
 ---
 
-## 6. Prisma 错误映射
+## 6. Prisma 错误包装
 
-`AllExceptionsFilter` 将常见 Prisma 错误转换为语义化 HTTP 响应：
+`DatabaseService` 内的 try/catch 块捕获常见 Prisma 错误，就地转换为语义化异常（不经过 Filter）：
 
-| Prisma 错误码 | HTTP 状态 | 错误码 |
-|-------------|----------|--------|
-| `P2002`（唯一约束冲突）| 409 | `UNIQUE_CONSTRAINT_VIOLATION` |
-| `P2003`（外键约束违反）| 400 | `FOREIGN_KEY_VIOLATION` |
-| `P2025`（记录不存在）| 404 | `RECORD_NOT_FOUND` |
+| Prisma 错误码 | 包装异常 | 错误码 |
+|------------|---------|-----|
+| `P2002`（唯一约束冲突）| `UniqueViolationException` | `DB_UNIQUE_VIOLATION` |
+| `P2025`（记录不存在）| `RecordNotFoundException` | `DB_RECORD_NOT_FOUND` |
+| 其他查询失败 | `QueryFailedException` | `DB_QUERY_FAILED` |
+
+> 异常包装涉及的定义见 `src/infra/database/database.exception.ts`。当前 DatabaseService 内尚未全量添加 Prisma 错误 try/catch，如有 Prisma 错误穿透，将由 AllExceptionFilter 包装为 `SYS_UNEXPECTED_ERROR`。
 
 ---
 

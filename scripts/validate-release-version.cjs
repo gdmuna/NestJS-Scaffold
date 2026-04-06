@@ -6,7 +6,7 @@
  * 用途：用于 ci-release.yaml 的版本检查 job
  *
  * 环境变量：
- * - GITHUB_REF: Git 引用（如 refs/heads/release-0.3）
+ * - GITHUB_REF: Git 引用（如 refs/heads/release/0.3）
  * - GITHUB_OUTPUT: GitHub Actions 输出文件路径
  *
  * 输出：
@@ -27,7 +27,7 @@ const { setGitHubOutput } = require('./version-utils.cjs');
 
 // 从 release 分支名称提取版本前缀（major.minor）
 function extractExpectedVersionPrefix(ref) {
-    // 期望格式：refs/heads/release-X.Y
+    // 期望格式：refs/heads/release/X.Y
     const match = ref.match(/^refs\/heads\/release\/(\d+\.\d+)$/);
     if (!match) {
         throw new Error(`Invalid release branch format: ${ref}. Expected: refs/heads/release/X.Y`);

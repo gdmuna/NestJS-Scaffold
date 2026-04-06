@@ -9,7 +9,6 @@
 
 ### 🐛 修复
 
-- **`fix(ci)`**：修复 `pg_isready` 未指定用户/数据库参数导致 PostgreSQL 健康检查提前通过、后续步骤连接失败（Connection refused）的问题；新增 `--health-start-period 30s` 缓冲、间隔收紧至 5s、重试提升至 10 次；CI test job 增加显式等待步骤，连接串改为 `127.0.0.1` 绕开 IPv6 优先解析（影响 `ci-reusable.yaml`、`cd-dev.yaml`、`cd-prod.yaml`）
 - **`fix(ci)`**：修复 `ci-release.yaml` 分支匹配模式 `release-[0-9]*` 无法匹配 `release/**` 命名规范的问题，导致 release 分支 CI 不触发
 - **`fix(scripts)`**：修复 `scripts/validate-release-version.cjs` 中版本前缀提取正则将连字符格式 `release-X.Y` 与实际斜杠格式 `release/X.Y` 混淆，导致版本验证始终抛出异常
 - **`fix(docs)`**：修复 `docs/04-planning/pr-0.7.0.md` 中 frontmatter `head: dev` 与 VitePress 保留字段冲突，导致文档镜像构建时抛出 `head.find is not a function`；将字段重命名为 `branch`

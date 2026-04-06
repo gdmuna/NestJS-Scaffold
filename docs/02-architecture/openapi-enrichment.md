@@ -2,8 +2,8 @@
 title: OpenAPI 自动富化设计
 inherits: docs/02-architecture/STANDARD.md
 status: active
-version: "0.6.1"
-last-updated: 2026-03-31
+version: "0.7.1"
+last-updated: 2026-04-06
 category: architecture
 related:
   - docs/02-architecture/STANDARD.md
@@ -256,7 +256,7 @@ https://{API_DOCS_BASE_URL}/errors/{ERROR_CODE}
 
 `@ApiRoute(auth !== 'public')` 已在装饰器展开时写入 `@ApiBearerAuth('access-token')`，Nest Swagger 会将其转换为 OpenAPI 的 `security` 字段。富化器不需要重新推断，只需：
 
-1. 验证一致性：如果操作同时拥有 `security` 字段和 `IS_PUBLIC_KEY=true`，记录警告（设计上不应出现，属于装饰器配置错误）
+1. 验证一致性：如果操作同时拥有 `security` 字段但 `auth='public'`，记录警告（设计上不应出现，属于装饰器配置错误）
 2. 对 `auth='optional'` 的路由，在其操作描述中追加说明："Token 为可选，提供后会挂载用户信息"
 
 ---

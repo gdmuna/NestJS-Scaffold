@@ -64,15 +64,15 @@ function validateVersionPrefixFormat(versionPrefix) {
 
 /**
  * 从 release 分支名提取版本前缀
- * @param {string} branchName - release 分支名（如 release-1.0）
+ * @param {string} branchName - release 分支名（如 release/1.0）
  * @returns {string} 版本前缀（如 1.0）
- * @example extractVersionPrefix('release-1.12') // => '1.12'
+ * @example extractVersionPrefix('release/1.12') // => '1.12'
  */
 function extractVersionPrefix(branchName) {
-    if (!branchName.startsWith('release-')) {
-        throw new Error(`Invalid branch name: ${branchName}. Expected format: release-X.Y`);
+    if (!branchName.startsWith('release/')) {
+        throw new Error(`Invalid branch name: ${branchName}. Expected format: release/X.Y`);
     }
-    const versionPrefix = branchName.replace('release-', '');
+    const versionPrefix = branchName.replace('release/', '');
 
     // 安全验证：防止命令注入
     validateVersionPrefixFormat(versionPrefix);

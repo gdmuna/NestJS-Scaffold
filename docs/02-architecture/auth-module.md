@@ -2,8 +2,8 @@
 title: 认证模块
 inherits: docs/02-architecture/STANDARD.md
 status: active
-version: "0.5.3"
-last-updated: 2026-03-26
+version: "0.7.1"
+last-updated: 2026-04-06
 category: architecture
 related:
   - docs/02-architecture/STANDARD.md
@@ -23,7 +23,7 @@ related:
 flowchart LR
     subgraph auth["modules/auth"]
         AC["AuthController\nPOST /auth/*"] --> AS["AuthService\n注册/登录/轮换"]
-        AS --> TS["TokenService\nRS256 签发/验证"]
+        AS --> TS["TokenService\nES256 签发/验证"]
         AG["AuthGuard（全局）"] --> TS
     end
 
@@ -38,11 +38,11 @@ flowchart LR
 | 属性 | Access Token | Refresh Token |
 |------|-------------|---------------|
 | 过期 | 15 分钟（`JWT_ACCESS_EXPIRES_IN`）| 7 天（`JWT_REFRESH_EXPIRES_IN`）|
-| 算法 | RS256（RSA 非对称）| RS256（RSA 非对称）|
+| 算法 | ES256（EC 非对称）| ES256（EC 非对称）|
 | 传输 | `Authorization: Bearer <token>` 请求头 | HttpOnly Cookie（名称：`refresh_token`）|
 | Claims | `sub, jti(ULID), tokenType:'access', user{...}` | `sub, jti(ULID), tokenType:'refresh'` |
 
-**选择 RS256 的理由**：公钥可安全分发给第三方服务进行本地验证，无需共享签名密钥，支持密钥分离架构。HS256 共享密钥无法安全分发。
+**选择 ES256 的理由**：公钥可安全分发给第三方服务进行本地验证，无需共享签名密钥，支持密钥分离架构。ES256（ECDSA P-256）密钥更短、性能优于 RS256（RSA），HS256 共享密钥无法安全分发。
 
 ---
 
@@ -163,14 +163,14 @@ flowchart TD
 
 ## 9. 密钥配置
 
-生产环境必须通过环境变量提供 RSA 密钥对（PEM 格式），禁止使用内置的 Dev 默认密钥：
+生产环境必须通过环境变量提供 EC 密钥对（PEM 格式），禁止使用内置的 Dev 默认密钥：
 
 | 环境变量 | 说明 |
 |---------|------|
-| `JWT_ACCESS_PRIVATE_KEY` | Access Token 签名私钥（RSA PEM）|
-| `JWT_ACCESS_PUBLIC_KEY` | Access Token 验证公钥（RSA PEM）|
-| `JWT_REFRESH_PRIVATE_KEY` | Refresh Token 签名私钥（RSA PEM）|
-| `JWT_REFRESH_PUBLIC_KEY` | Refresh Token 验证公钥（RSA PEM）|
+| `JWT_ACCESS_PRIVATE_KEY` | Access Token 签名私钥（EC PEM）|
+| `JWT_ACCESS_PUBLIC_KEY` | Access Token 验证公钥（EC PEM）|
+| `JWT_REFRESH_PRIVATE_KEY` | Refresh Token 签名私钥（EC PEM）|
+| `JWT_REFRESH_PUBLIC_KEY` | Refresh Token 验证公钥（EC PEM）|
 | `JWT_ACCESS_EXPIRES_IN` | Access Token 过期（默认 `'15m'`）|
 | `JWT_REFRESH_EXPIRES_IN` | Refresh Token 过期（默认 `'7d'`）|
 

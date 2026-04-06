@@ -2,8 +2,8 @@
 title: 贡献指南
 inherits: docs/01-guides/STANDARD.md
 status: active
-version: "0.5.3"
-last-updated: 2026-03-27
+version: "0.7.1"
+last-updated: 2026-04-06
 category: guide
 ---
 
@@ -20,15 +20,17 @@ category: guide
 | 主干 | `main` | 生产就绪代码，只接受来自 `release-x.y` 的 PR |
 | 开发 | `dev` | 日常集成分支，接受来自 `feature/**` 的 PR |
 | 特性 | `feature/<描述>` | 新功能开发，从 `dev` 创建，PR 目标为 `dev` |
-| 发布 | `release-<major>.<minor>` | 预发布分支，如 `release-0.6`，从 `dev` 创建，PR 目标为 `main` |
+| 发布 | `release/<major>.<minor>` | 预发布分支，如 `release/0.6`，从 `dev` 创建，PR 目标为 `main` |
 
 **触发的 CI 工作流**：
 
 - `feature/**` push → `ci-feature.yaml`（lint + test）
+- `dev` push → `ci-dev.yaml`（lint + test）→ `cd-dev.yaml`（部署至开发环境）
 - PR → `dev` → `pr-check-dev.yaml`（lint + test）
 - PR → `main` → `pr-check-prod.yaml`（lint + test + 版本号检查）
-- `release-[0-9]*` push → `ci-release.yaml` + `release-snapshot.yaml`
-- `main` push → `ci-prod.yaml`（lint + test）→ `auto-tag-release.yaml`（自动打 tag）→ `cd-prod.yaml`（构建发布）
+- `release/**` push → `ci-release.yaml`（lint + test + 版本号校验）
+- `main` push → `ci-prod.yaml`（lint + test）
+- PR 合并至 `main`（来自 `release/*`）→ `auto-tag-release.yaml`（自动打 tag）→ `cd-prod.yaml`（构建发布）
 
 ---
 
@@ -89,9 +91,9 @@ ci: update concurrency groups in workflows
 
 ## 3. 发布流程（release 分支负责人）
 
-1. 从 `dev` 创建 `release-<major>.<minor>` 分支
+1. 从 `dev` 创建 `release/<major>.<minor>` 分支
 2. 更新 `package.json` 中的版本号至目标版本（如 `0.6.0`）
-3. 推送分支，`release-snapshot.yaml` 自动发布快照版本供测试
+3. 推送分支，`ci-release.yaml` 自动运行 lint + test 测试
 4. 测试通过后，向 `main` 发起 PR（`pr-check-prod.yaml` 会验证版本号格式）
 5. PR 合并后，`auto-tag-release.yaml` 自动创建版本 tag，`cd-prod.yaml` 自动构建并发布 Docker 镜像
 
