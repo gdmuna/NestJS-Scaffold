@@ -83,6 +83,13 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Extract version
+        id: version
+        run: |
+          VERSION=$(node -e "console.log(require('./package.json').version)")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "📦 Version: $VERSION"
+
       - name: Install dotenvx
         run: curl -sfS https://dotenvx.sh/install.sh | sh
 
@@ -95,13 +102,6 @@ jobs:
         run: |
           PGPASSWORD=ci_test_password psql -h localhost -U ci_test -d postgres \
             -c "CREATE DATABASE nestjs_demo_basic_shadow;"
-
-      - name: Extract version
-        id: version
-        run: |
-          VERSION=$(node -e "console.log(require('./package.json').version)")
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "📦 Version: $VERSION"
 
       - name: Generate Prisma Client
         run: pnpm prisma generate
@@ -150,6 +150,12 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Install dotenvx
+        run: curl -sfS https://dotenvx.sh/install.sh | sh
+
+      - name: Generate Prisma Client
+        run: pnpm prisma generate
 
       - name: Build application
         run: pnpm build
