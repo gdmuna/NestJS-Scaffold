@@ -124,8 +124,8 @@ jobs:
           docker run -d \
             --name backend-export \
             --network host \
-            --env-file /tmp/.env.cd_export \
-            -e NODE_ENV=production \
+            -e DOTENV_PRIVATE_KEY_TEST=${{ secrets.DOTENV_PRIVATE_KEY_TEST }} \
+            -e NODE_ENV=test \
             -e DATABASE_URL="postgresql://cd_export:cd_export_pass@localhost:5432/nestjs_cd_export?schema=public" \
             -e PORT=3000 \
             ${{ env.BACKEND_IMAGE }}:dev-latest
@@ -173,7 +173,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: openapi-json-dev-${{ github.run_id }}
-          path: scripts/
+          path: .
 
       - uses: docker/setup-buildx-action@v3
 
@@ -191,7 +191,7 @@ jobs:
           tags: |
             ${{ env.DOCS_IMAGE }}:dev-latest
           build-args: |
-            OPENAPI_JSON_PATH=scripts/openapi.json
+            OPENAPI_JSON_PATH=./openapi.json
           cache-from: type=gha
           cache-to: type=gha,mode=max
 

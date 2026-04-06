@@ -28,7 +28,7 @@ date: 2026-04-07
   **修复方案**：移除中间解密步骤，直接传入私钥让容器内 dotenvx 解密：
   - 删除 "Decrypt .env.test" 步骤及 `/tmp/.env.cd_export` 临时文件
   - 删除 `--env-file /tmp/.env.cd_export` 参数
-  - 新增 `-e DOTENV_PRIVATE_KEY_TEST=${{ secrets.DOTENV_PRIVATE_KEY_TEST }}`，容器内 dotenvx 自动解密 `.env.test`
+  - 新增 `-e DOTENV_PRIVATE_KEY_TEST=` + GitHub Actions secret ref，容器内 dotenvx 自动解密 `.env.test`
   - `NODE_ENV=production` 改为 `NODE_ENV=test`（dotenvx 按 `NODE_ENV` 匹配解密文件；`production` 对应 `DOTENV_PRIVATE_KEY_PRODUCTION`，`test` 对应 `DOTENV_PRIVATE_KEY_TEST`）
 
 ---
