@@ -80,6 +80,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Install dotenvx
+        run: curl -sfS https://dotenvx.sh/install.sh | sh
+
       - name: Set CI database URLs
         run: |
           echo "DATABASE_URL=postgresql://ci_test:ci_test_password@localhost:5432/nestjs_demo_basic_test?schema=public" >> "$GITHUB_ENV"
