@@ -2,7 +2,7 @@ import { config } from '@dotenvx/dotenvx-ops';
 import { resolve } from 'path';
 import { defineConfig, env } from 'prisma/config';
 
-const suffix = 'development';
+const suffix = process.env.NODE_ENV ?? 'development';
 const path = resolve(process.cwd(), `.env.${suffix}`);
 config({ path });
 

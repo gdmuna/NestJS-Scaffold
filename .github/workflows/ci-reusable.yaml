@@ -62,8 +62,8 @@ jobs:
           - 5432:5432
 
     env:
-      DATABASE_URL: postgresql://ci_test:ci_test_password@localhost:5432/nestjs_demo_basic_test?schema=public
-      SHADOW_DATABASE_URL: postgresql://ci_test:ci_test_password@localhost:5432/nestjs_demo_basic_test?schema=public
+      NODE_ENV: test
+      DOTENV_PRIVATE_KEY_TEST: ${{ secrets.DOTENV_PRIVATE_KEY_TEST }}
 
     steps:
       - uses: actions/checkout@v4
@@ -79,6 +79,16 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Set CI database URLs
+        run: |
+          echo "DATABASE_URL=postgresql://ci_test:ci_test_password@localhost:5432/nestjs_demo_basic_test?schema=public" >> "$GITHUB_ENV"
+          echo "SHADOW_DATABASE_URL=postgresql://ci_test:ci_test_password@localhost:5432/nestjs_demo_basic_shadow?schema=public" >> "$GITHUB_ENV"
+
+      - name: Create shadow database
+        run: |
+          PGPASSWORD=ci_test_password psql -h localhost -U ci_test -d postgres \
+            -c "CREATE DATABASE nestjs_demo_basic_shadow;"
 
       - name: Extract version
         id: version
@@ -104,8 +114,6 @@ jobs:
             echo "⚠️  No migration files, falling back to db push (dev phase)"
             pnpm prisma db push
           fi
-        env:
-          DATABASE_URL: ${{ env.DATABASE_URL }}
 
       - name: Run tests with coverage
         run: pnpm test --ci --coverage
