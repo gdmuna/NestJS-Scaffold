@@ -6,6 +6,9 @@ on:
     branches: [dev]
     types: [completed]
 
+permissions:
+  contents: read
+
 env:
   DOCKER_USERNAME: ${{ vars.DOCKER_USERNAME || github.repository_owner }}
   BACKEND_IMAGE: ${{ vars.DOCKER_USERNAME || github.repository_owner }}/${{ vars.DOCKER_REPO_NAME || github.event.repository.name }}
@@ -83,6 +86,10 @@ jobs:
 
       - name: Install dotenvx
         run: curl -sfS https://dotenvx.sh/install.sh | sh
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
 
       - name: Run prisma migrations
         run: |
