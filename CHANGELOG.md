@@ -5,6 +5,17 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.7.3] - 2026-04-07
+
+### 🐛 修复
+
+- **`fix(ci)`**：修复 `cd-prod.yaml` 中 OpenAPI 导出容器因 `--env-file` 不支持多行 EC 私钥值而导致启动失败的问题
+  - 移除 "Decrypt .env.test" 步骤（不再生成中间临时文件 `/tmp/.env.cd_export`）
+  - 改为 `docker run -e DOTENV_PRIVATE_KEY_TEST=...`，容器内 dotenvx 解密 `.env.test`
+  - `NODE_ENV=production` 改为 `NODE_ENV=test`，与 `.env.test` 文件及私钥名 `DOTENV_PRIVATE_KEY_TEST` 保持一致
+
+---
+
 ## [0.7.2] - 2026-04-07
 
 ###  构建 / 工具链

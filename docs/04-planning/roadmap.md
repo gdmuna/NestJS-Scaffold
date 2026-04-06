@@ -2,7 +2,7 @@
 title: 版本路线图
 inherits: docs/04-planning/STANDARD.md
 status: active
-version: "0.7.2"
+version: "0.7.3"
 last-updated: 2026-04-07
 category: planning
 related:
@@ -21,7 +21,10 @@ related:
 ## 概览
 
 | 版本 | 发布日期 | 状态 | 核心主题 |
-|------|---------|------|---------|| [v0.7.2](#v072--文档同步与-cicd-工作流补缺) | 2026-04-07 | ✅ 已发布 | 架构文档同步、Workflow postgres port mapping || [v0.7.1](#v071--cicd-与脚本缺陷修复) | 2026-04-06 | ✅ 已发布 | PostgreSQL 健康检查、分支匹配、构建管理修复 |
+|------|---------|------|---------|
+| [v0.7.3](#v073--cdprod-导出容器启动修复) | 2026-04-07 | ✅ 已发布 | cd-prod OpenAPI 导出容器环境变量注入方式修复 |
+| [v0.7.2](#v072--cicd-工作流补缺) | 2026-04-07 | ✅ 已发布 | cd-dev / cd-prod Postgres 端口映射补缺 |
+| [v0.7.1](#v071--cicd-修复与架构文档同步) | 2026-04-06 | ✅ 已发布 | PostgreSQL 健康检查、分支匹配、构建管理修复 |
 | [v0.7.0](#v070--api-文档-文档站与-cicd-流水线) | 2026-04-06 | ✅ 已发布 | @ApiRoute、VitePress 文档站、可复用 CI、CD 自动部署 |
 | [v0.6.2](#v062--异常系统重构与配置架构整合) | 2026-04-04 | ✅ 已发布 | 异常体系重构、config 整合、Docker 编排、工具链升级 |
 | [v0.6.1](#v061--数据模型与中间件修复) | 2026-03-28 | ✅ 已发布 | Prisma schema 补全、Middleware 修复、文档更新 |
@@ -31,6 +34,18 @@ related:
 | [v0.3.x](#v03x--提交规范与流程标准化) | 2025-12-20~21 | ✅ 已发布 | 提交规范、工作流重命名、Prisma 升级 |
 | [v0.2.0](#v020--cicd-初始化) | 2025-12 | ✅ 已发布 | CI/CD 工作流 + Docker |
 | [v0.1.0](#v010--项目初始化) | 2025-11 | ✅ 已发布 | NestJS 项目 scaffold |
+
+---
+
+## v0.7.3 — cd-prod 导出容器启动修复
+
+> 发布日期：2026-04-07｜分支：`release/0.7` → `main`｜状态：✅ 已发布
+
+**目标**：修复 `cd-prod.yaml` 中 OpenAPI 导出容器无法正确加载应用配置的问题，无功能性变更。
+
+- [x] **移除中间解密文件写入步骤**（`fix(ci)`）：原先通过 `dotenvx decrypt --stdout > /tmp/.env.cd_export` 生成临时文件再以 `--env-file` 挂载，但 EC 私钥包含多行值，Docker `--env-file` 不支持多行变量，导致容器启动失败
+- [x] **改为直接传入私钥环境变量**：`docker run` 时直接传入 `-e DOTENV_PRIVATE_KEY_TEST=...`，容器内 dotenvx 自动解密 `.env.test`
+- [x] **`NODE_ENV=production` → `NODE_ENV=test`**：与 `.env.test` 文件及对应私钥名 `DOTENV_PRIVATE_KEY_TEST` 保持一致
 
 ---
 
