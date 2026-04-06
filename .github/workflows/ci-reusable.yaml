@@ -101,9 +101,7 @@ jobs:
           echo "📦 Version: $VERSION"
 
       - name: Generate Prisma Client
-        run: pnpm prisma generate]
-        env:
-          DOTENV_PRIVATE_KEY_TEST: ${{ secrets.DOTENV_PRIVATE_KEY_TEST }}
+        run: pnpm prisma generate
 
       - name: Sync schema (CI DB)
         run: |
@@ -122,8 +120,6 @@ jobs:
 
       - name: Run tests with coverage
         run: pnpm test --ci --coverage
-        env:
-          DOTENV_PRIVATE_KEY_TEST: ${{ secrets.DOTENV_PRIVATE_KEY_TEST }}
 
       - name: Upload coverage
         uses: actions/upload-artifact@v4
