@@ -1,7 +1,7 @@
 {
   "name": "nestjs-demo-basic",
   "private": true,
-  "version": "0.7.2",
+  "version": "0.7.3",
   "description": "一个使用 NestJS 构建的示例项目",
   "license": "MIT",
   "type": "module",
