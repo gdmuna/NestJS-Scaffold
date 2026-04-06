@@ -23,6 +23,7 @@ permissions:
 
 env:
   TOKEN: ${{ secrets.PAT || secrets.GITHUB_TOKEN }}
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
 concurrency:
   group: auto-tag-release-${{ github.event.pull_request.base.ref }}
