@@ -2,8 +2,8 @@
 title: 项目架构全览
 inherits: docs/02-architecture/STANDARD.md
 status: active
-version: "0.5.3"
-last-updated: 2026-03-26
+version: "0.7.1"
+last-updated: 2026-04-06
 category: architecture
 related:
   - docs/02-architecture/STANDARD.md
@@ -16,7 +16,7 @@ related:
 
 # 项目架构全览
 
-> NestJS 生产级后端基线模板 v0.5.3。架构约束与文档规范见 [STANDARD.md](STANDARD.md)。
+> NestJS 生产级后端基线模板 v0.7.1。架构约束与文档规范见 [STANDARD.md](STANDARD.md)。
 
 ---
 
@@ -24,12 +24,12 @@ related:
 
 | 层级 | 技术 | 版本 |
 |------|------|------|
-| 运行时 | Node.js | ≥20.0.0 |
+| 运行时 | Node.js | ≥22.0.0 |
 | 语言 | TypeScript（strict, ESM, nodenext）| 5.9.3 |
 | 框架 | NestJS | 11.1.17 |
 | ORM | Prisma + `@prisma/adapter-pg` | 7.5.0 |
-| 数据库 | PostgreSQL | ≥15 |
-| 认证 | JWT RS256 + bcryptjs（10 rounds）| — |
+| 数据库 | PostgreSQL | ≥18 |
+| 认证 | JWT ES256 + bcryptjs（10 rounds）| — |
 | 验证 | Zod 4 + nestjs-zod | 4.3.6 |
 | 日志 | Pino + nestjs-pino | 10.3.1 |
 | 安全 | Helmet + @nestjs/throttler + CORS | — |
@@ -57,14 +57,14 @@ flowchart TD
 
     subgraph GD["全局守卫"]
         direction LR
-        TG["ThrottlerGuard\n3 级限流"] --> AG["AuthGuard\nJWT RS256"]
+        TG["ThrottlerGuard\n3 级限流"] --> AG["AuthGuard\nJWT ES256"]
     end
 
     ZVP["ZodValidationPipe（全局）"]
 
     subgraph BL["业务层"]
         direction LR
-        AC["AppController\n/health /test/*"] --- ATC["AuthController\n/auth/*"] --- EC["ErrorCatalogController\n/errors"]
+        AC["AppController\n/health /test/*"] --- ATC["AuthController\n/auth/*"] --- EC["ExceptionCatalogController\n/errors"]
     end
 
     subgraph SL["Service 层"]
@@ -96,8 +96,8 @@ flowchart TD
 |------|------|------|
 | App | `src/app.*` | 全局中间件、拦截器、过滤器装配；健康检查 |
 | Auth | `src/modules/auth/` | 注册/登录/刷新令牌；JWT 签发与验证 |
-| ErrorCatalog | `src/modules/error-catalog/` | `GET /errors`：错误码自文档化 API |
-| Common | `src/common/` | 工具函数库、装饰器、`BusinessException`、`AlsService` |
+| ExceptionCatalog | `src/modules/exception-catalog/` | `GET /errors`：错误码自文档化 API |
+| Common | `src/common/` | 工具函数库、装饰器、AppException / ClientException / SystemException 异常基类体系 |
 | Constants | `src/constants/` | 所有常量的唯一定义来源 |
 | Infra | `src/infra/` | `DatabaseService`（Prisma + PG）、存储抽象 |
 
@@ -122,7 +122,7 @@ flowchart TD
 
 | 决策 | 选择 | 核心理由 |
 |------|------|---------|
-| 认证算法 | JWT RS256（非对称）| 公钥可分发，支持密钥分离；HS256 无法安全分发验证密钥 |
+| 认证算法 | JWT ES256（EC 非对称）| 公钥可分发，支持密钥分离；EC 密钥更短，性能优于 RSA；HS256 无法安全分发验证密钥 |
 | 主键类型 | ULID | 时间有序（优于 UUID v4），适合数据库索引 |
 | 日志库 | Pino | 性能最优，原生 JSON，nestjs-pino 官方集成 |
 | 请求上下文 | AsyncLocalStorage | 无需手动传参，任意层级可访问请求 ID |

@@ -31,7 +31,7 @@ concurrency:
 jobs:
   auto-tag:
     name: Auto tag from release branch
-    if: github.event.pull_request.merged == true && startsWith(github.event.pull_request.head.ref, 'release-')
+    if: github.event.pull_request.merged == true && startsWith(github.event.pull_request.head.ref, 'release/')
     runs-on: ubuntu-latest
 
     steps:
@@ -107,7 +107,7 @@ jobs:
           fi
 
       - name: Generate summary
-        if: always() && github.event.pull_request.merged == true && startsWith(github.event.pull_request.head.ref, 'release-')
+        if: always() && github.event.pull_request.merged == true && startsWith(github.event.pull_request.head.ref, 'release/')
         env:
           PR_TITLE: ${{ github.event.pull_request.title }}
           PR_HEAD_REPO: ${{ github.event.pull_request.head.repo.full_name }}

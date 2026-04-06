@@ -2,8 +2,8 @@
 title: 路由契约装饰器设计
 inherits: docs/02-architecture/STANDARD.md
 status: active
-version: "0.6.1"
-last-updated: 2026-03-31
+version: "0.7.1"
+last-updated: 2026-04-06
 category: architecture
 related:
   - docs/02-architecture/STANDARD.md
@@ -66,10 +66,10 @@ related:
  * - 'optional' 有 Token 则解析挂载，无 Token 也放行（游客可用的展示接口）
  * - 'required' 必须携带有效 Token，否则 401（默认值）
  */
-type AuthStrategy = 'public' | 'optional' | 'required';
+type AUTH_STRATEGY_TYPE = 'public' | 'optional' | 'required';
 ```
 
-`AuthGuard` 通过 `Reflector.getAllAndOverride(ROUTE_AUTH_KEY, ...)` 读取策略后执行不同分支，替代现在只有 `isPublic` 布尔值的逻辑。
+`AuthGuard` 通过 `Reflector.getAllAndOverride(AUTH_STRATEGY_KEY, ...)` 读取策略后执行不同分支。
 
 ---
 
@@ -88,31 +88,29 @@ interface ApiRouteOptions {
      * openapi-enricher 读取后自动将其包裹进统一成功包络：
      * { success: true, data: <responseType>, timestamp, context }
      */
-    responseType?: Type<unknown>;
+    responseType?: Type<unknown> | Record<string, unknown>;
 
     /** 成功响应的 HTTP 状态码（默认 200） */
     successStatus?: number;
 
     /**
-     * 该路由可能抛出的业务错误码，类型约束为 keyof ERROR_CATALOG。
+     * 该路由可能抛出的业务错误码列表（ErrorRegistry 中已注册的 code 字符串）。
      *
-     * 以下错误无需手工声明，装饰器自动追加：
-     * - REQUEST_TIMEOUT（所有路由）
-     * - RATE_LIMIT_EXCEEDED（所有路由）
-     * - INTERNAL_SERVER_ERROR（所有路由）
-     * - UNAUTHORIZED（auth='required' 时）
+     * 以下错误码无需声明，装饰器自动追加：
+     * - 所有 ClientExceptionCode 和 SystemExceptionCode 定义的错误码（全部路由）
+     *
+     * auth='required' 路由的认证失败错误（AUTH_TOKEN_MISSING、AUTH_TOKEN_INVALID）
+     * 由各路由按需在此处手动声明。
      */
-    errors?: Array<keyof typeof ERROR_CATALOG>;
+    errors?: string[];
 
-    /** 认证策略（默认 'required'） */
-    auth?: AuthStrategy;
+    /** 认证策略（必填） */
+    auth: AUTH_STRATEGY_TYPE;
 
     /** 标记接口为已废弃 */
     deprecated?: boolean;
 }
 ```
-
-`errors` 字段的类型约束是整个设计的关键：编译期保证声明的错误码真实存在于注册表，运行时加载时如果注册表与 Filter 实际处理不一致即可发现。
 
 ---
 
@@ -120,11 +118,8 @@ interface ApiRouteOptions {
 
 | 键常量 | 值 | 消费方 |
 |-------|----|--------|
-| `ROUTE_AUTH_KEY` | `'route:auth'` | `AuthGuard`（Reflector 读取） |
-| `ROUTE_ERRORS_KEY` | `'route:errors'` | `openapi-enricher`（文档生成阶段）、启动期校验器（可选） |
-| `IS_PUBLIC_KEY` | `'auth:isPublic'`（现有） | `AuthGuard`（向后兼容，当 `auth !== 'required'` 时写入 `true`） |
-
-`IS_PUBLIC_KEY` 的保留是为了确保改造期间未迁移的旧路由继续正常工作，`ROUTE_AUTH_KEY` 是新路径，两者共存直到旧路由完成迁移。
+| `AUTH_STRATEGY_KEY` | `'auth:strategy'` | `AuthGuard`（通过 Reflector 读取策略值） |
+| `ROUTE_ERRORS_KEY` | `'route:errors'` | `openapi-enricher`（文档生成阶段） |
 
 ---
 
@@ -133,9 +128,8 @@ interface ApiRouteOptions {
 `@ApiRoute(options)` 在编译期展开为以下装饰器的等价组合（展开顺序不得依赖副作用）：
 
 ```
-SetMetadata(ROUTE_AUTH_KEY, auth)
-SetMetadata(ROUTE_ERRORS_KEY, allErrors)       ← 含自动追加的基础错误
-SetMetadata(IS_PUBLIC_KEY, auth !== 'required') ← 向后兼容
+SetMetadata(AUTH_STRATEGY_KEY, auth)
+SetMetadata(ROUTE_ERRORS_KEY, allErrors)       ← 含自动追加的基础错误码
 
 ApiOperation({ summary, description, deprecated })
 
@@ -152,14 +146,7 @@ ApiResponse({ status: successStatus ?? 200, type: responseType })
 ApiBearerAuth('access-token')
 ```
 
-**自动追加规则**：
-
-| 条件 | 自动加入 `allErrors` |
-|------|---------------------|
-| 所有路由 | `REQUEST_TIMEOUT`、`RATE_LIMIT_EXCEEDED`、`INTERNAL_SERVER_ERROR` |
-| `auth === 'required'` | `UNAUTHORIZED` |
-
-手工声明的错误码优先，自动追加的错误码不重复添加。
+装饰器自动追加所有 `ClientExceptionCode` 和 `SystemExceptionCode` 值为基础错误码。手工声明的错误码不重复添加。
 
 ---
 
@@ -169,7 +156,7 @@ ApiBearerAuth('access-token')
 
 | 消费层 | 读取的元数据键 | 职责 |
 |--------|-------------|------|
-| `AuthGuard` | `ROUTE_AUTH_KEY`（含 `IS_PUBLIC_KEY` 兜底）| 决定是否放行请求 |
+| `AuthGuard` | `AUTH_STRATEGY_KEY` | 决定是否放行请求 |
 | `openapi-enricher`（文档生成阶段）| `ROUTE_ERRORS_KEY` + 已有 `ApiResponse` | 生成错误文档示例、包裹成功包络 |
 | 启动期校验器（可选扩展）| `ROUTE_ERRORS_KEY` | 验证声明的错误码均已在 `ErrorRegistry` 注册 |
 | 运行时追踪（可选扩展） | `ROUTE_ERRORS_KEY` | 在响应中附加路由契约版本，方便调试 |
@@ -183,30 +170,21 @@ ApiBearerAuth('access-token')
 `@ApiRoute` 的 `errors` 字段与 [exception-system.md](exception-system.md) 的错误码体系共享同一类型来源：
 
 ```
-                  错误码注册表（ERROR_CATALOG / ErrorRegistry）
+                  错误码注册表（ErrorRegistry）
                          │
           ┌──────────────┼────────────────────┐
           ▼              ▼                    ▼
-    @ApiRoute.errors   Filter 运行时       ErrorCatalogController
-    （编译期约束）      （匹配已知错误）     （文档 URL 生成）
+    @ApiRoute.errors   Filter 运行时       ExceptionCatalogController
+    （类型提示）        （匹配已知错误）     （文档 URL 生成）
 ```
 
-当 `exception-system` 中新增错误码时，`@ApiRoute` 的类型会自动扩展，开发者在声明 `errors` 时可以在 IDE 中直接看到新增选项。
+当 `exception-system` 中新增错误码时，`@ApiRoute` 的 `errors` 字段可直接引用新增的错误码字符串。
 
 ---
 
-## 9. 向后兼容策略
+## 9. 向后兼容
 
-迁移分为两个阶段，不要求一次性改完所有路由：
-
-**阶段一**：`@ApiRoute()` 与原有装饰器并存
-- 新路由统一使用 `@ApiRoute()`
-- 旧路由保持原有 `@Public()` + `@ApiOperation()` 组合不变
-- `AuthGuard` 优先检查 `ROUTE_AUTH_KEY`，无则降级检查 `IS_PUBLIC_KEY`
-
-**阶段二**：逐模块迁移
-- 每个模块完成迁移后，移除旧的独立装饰器引用
-- 全部迁移完成后，`IS_PUBLIC_KEY` 兼容层可安全删除
+`@ApiRoute()` 装饰器已完成全项目迁移，所有路由统一使用 `auth: AUTH_STRATEGY_TYPE` 指定认证策略。旧有的 `@Public()` / `IS_PUBLIC_KEY` 兼容层已随迁移完成一并移除。
 
 ---
 
@@ -216,8 +194,8 @@ ApiBearerAuth('access-token')
 src/
 └── common/
     └── decorators/
-        ├── auth.decorator.ts    ← 保留现有 @Public / IS_PUBLIC_KEY（兼容层）
-        ├── route.decorator.ts   ← 新增：@ApiRoute + ROUTE_AUTH_KEY + ROUTE_ERRORS_KEY
+        ├── cookie.decorator.ts  ← @Cookie() 参数装饰器
+        ├── route.decorator.ts   ← @ApiRoute + AUTH_STRATEGY_KEY + ROUTE_ERRORS_KEY
         └── index.ts             ← re-export 两者
 ```
 

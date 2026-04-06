@@ -2,7 +2,7 @@
 title: "发布 PR：v0.7.0"
 version: "0.7.0"
 base: main
-head: dev
+branch: dev
 date: 2026-04-06
 ---
 

@@ -2,8 +2,8 @@
 title: 异常系统设计
 inherits: docs/02-architecture/STANDARD.md
 status: active
-version: "0.5.3"
-last-updated: 2026-03-31
+version: "0.7.1"
+last-updated: 2026-04-06
 category: architecture
 related:
   - docs/02-architecture/STANDARD.md
@@ -94,14 +94,14 @@ class AppException extends HttpException {
 
 ```typescript
 // 第一层：领域级（就近定义，const 对象）
-// src/modules/auth/auth.exceptions.ts
+// src/modules/auth/auth.exception.ts
 export const AuthCode = {
     USER_DUPLICATE:       'AUTH_USER_DUPLICATE',
     CREDENTIALS_INVALID:  'AUTH_CREDENTIALS_INVALID',
     TOKEN_INVALID:        'AUTH_TOKEN_INVALID',
 } as const;
 
-// src/infra/database/database.exceptions.ts
+// src/infra/database/database.exception.ts
 export const DatabaseCode = {
     UNIQUE_VIOLATION:  'DB_UNIQUE_VIOLATION',
     RECORD_NOT_FOUND:  'DB_RECORD_NOT_FOUND',
@@ -142,65 +142,37 @@ AUTH_DUPLICATE_USER        ✗  主语不一致，避免
 
 ---
 
-## 4. `Result<T, E>` 类型契约
+## 4. 异常抛出与 IO 包装
 
-### 4.1 类型定义
+### 4.1 Service 层报错方式
 
-```typescript
-// src/common/exceptions/result.type.ts
-export type Result<T, E extends AppException = AppException> =
-    | { ok: true;  data: T }
-    | { ok: false; error: E };
-
-export const ok   = <T>(data: T): Result<T, never> => ({ ok: true, data });
-export const fail = <E extends AppException>(error: E): Result<never, E> => ({ ok: false, error });
-```
-
-### 4.2 使用规范
-
-**Service 层**：返回 `Result<T, E>`，不再直接 `throw`。
+Service 层直接 `throw` 已注册的异常实例，Controller 层不需解包：
 
 ```typescript
 // src/modules/auth/services/auth.service.ts
-async register(dto: RegisterDto): Promise<Result<AuthResult, ResourceException>> {
-    const [err, user] = await to(this.db.user.findFirst(...));  // to() 包装 IO 调用
-    if (err) return fail(new DatabaseException(DatabaseCode.QUERY_FAILED, { cause: err }));
-    if (user) return fail(new ResourceException(AuthCode.USER_DUPLICATE));
-
+async register(payload: RegisterDto): Promise<AuthResult> {
+    const duplicate = await this.db.user.findFirst({ where: { OR: [{ username }, { email }] } });
+    if (duplicate) {
+        throw new DuplicateUserException();  // 直接 throw，不需包装
+    }
     // ... 业务逻辑
-    return ok({ accessToken, refreshToken, user });
+    return { accessToken, refreshToken, user };
 }
 ```
 
-**Controller 层**：解包 `Result`，决定后续步骤。
+### 4.2 `to()` 工具
+
+`to()` 在 `src/common/utils/operations/async.operation.ts` 中提供 tuple 模式包装，适用于底层 IO 操作的错误分支：
 
 ```typescript
-// src/modules/auth/auth.controller.ts
-async register(@Body() dto: RegisterDto) {
-    const result = await this.authService.register(dto);
-    if (!result.ok) throw result.error;  // 转为异常，交给 Filter 格式化响应
-    return result.data;
-}
+const [err, data] = await to(somePromise);
+if (err) throw new QueryFailedException({ cause: err });
 ```
-
-`E` 的泛型约束确保 `result.error` 在 Controller 中类型已知，无需断言：
-
-```typescript
-// E = ResourceException 时，result.error 确认有 code / statusCode / logLevel
-if (!result.ok) {
-    logger.warn(result.error.code);  // TS 知道 code 存在，无 any
-    throw result.error;
-}
-```
-
-### 4.3 `to()` 与 `Result<T, E>` 的分工
 
 | 工具 | 用于 | 返回 |
 |------|------|------|
 | `to(promise)` | 包装底层 IO（数据库、HTTP、文件）| `[err, null] \| [null, T]` |
-| `Result<T, E>` | Service 对外暴露的业务契约 | `{ ok, data } \| { ok, error }` |
-
-`to()` 捕获的原始错误应就地包装为对应的 `InfraException` 子类后，再通过 `fail()` 包装进 `Result`。
+| `throw Exception` | Service 层报错 | （无返回）抛出到 Filter |
 
 ---
 
@@ -216,14 +188,16 @@ if (!result.ok) {
 
 ### 5.2 注册保证
 
-装饰器在文件被 `import` 时执行。各领域 `*.exceptions.ts` 必须在对应模块的 `*.module.ts` 顶部 import，确保应用启动时完整注册：
+装饰器在文件被 `import` 时执行。所有领域异常文件通过 `src/common/exceptions/index.ts` 统一导入，确保应用启动时完整注册：
 
 ```typescript
-// src/modules/auth/auth.module.ts
-import './auth.exceptions.js';  // 触发装饰器注册，无需使用导出值
+// src/common/exceptions/index.ts
+import '@/infra/database/database.exception.js';
+import '@/modules/auth/auth.exception.js';
+import '@/modules/exception-catalog/exception-catalog.exception.js';
 ```
 
-基础设施异常（`database.exceptions.ts`、`storage.exceptions.ts`）在其对应的 infra 模块导入时触发。`SystemException` 在 `AppModule` 启动时注册。
+此文件在 AppModule 载入时即被导入，无需在各模块 `module.ts` 内单独导入。新增领域异常文件时，在 `index.ts` 中添加对应 `import` 即可。
 
 ### 5.3 重复注册保护
 
@@ -237,33 +211,27 @@ import './auth.exceptions.js';  // 触发装饰器注册，无需使用导出值
 src/
 ├── common/
 │   └── exceptions/
-│       ├── app.exception.ts          ← AppException 基类 + ExceptionMeta 接口
-│       ├── client.exception.ts       ← ClientException / ValidationException /
-│       │                                AuthException / ResourceException
-│       ├── system.exception.ts       ← SystemException（fatal 基类）
-│       ├── error-registry.ts         ← ErrorRegistry 单例 + @RegisterException 装饰器
-│       ├── result.type.ts            ← Result<T,E> + ok() + fail()
-│       └── index.ts
+│       ├── app.exception.ts          ← AppException / ClientException / InfraException / SystemException 基类
+│       ├── client.exception.ts       ← ValidationException / AuthException / ResourceException +
+│       │                                ValidationFailedException / RateLimitException 叶节点
+│       ├── system.exception.ts       ← SysSerializationException / SysHttpException / SysUnknownException
+│       ├── exception-registry.ts     ← ErrorRegistry 单例 + @RegisterException 装饰器
+│       └── index.ts                  ← 统一导出 + 触发各领域异常的注册
 │
 ├── infra/
-│   ├── infra.exception.ts            ← InfraException 基类（只在 infra 层使用）
-│   ├── database/
-│   │   ├── database.service.ts       ← try/catch 捕获 PrismaClientKnownRequestError，
-│   │   │                                就地包装为 DatabaseException（不依赖 Filter）
-│   │   └── database.exceptions.ts   ← DatabaseException + DatabaseCode（@RegisterException 标注）
-│   └── storage/
-│       └── storage.exceptions.ts    ← StorageException + StorageCode
+│   └── database/
+│       ├── database.service.ts       ← 查询监控与连接池管理
+│       └── database.exception.ts     ← DatabaseException + DatabaseExceptionCode（@RegisterException 标注）
 │
 ├── modules/
-│   └── auth/
-│       ├── auth.exceptions.ts        ← DuplicateUserException / InvalidCredentialsException
-│       │                                （extends ResourceException / AuthException）
-│       ├── auth.module.ts            ← import './auth.exceptions.js'
-│       └── services/
-│           └── auth.service.ts       ← 返回 Result<AuthResult, ResourceException>
+│   ├── auth/
+│   │   └── auth.exception.ts         ← DuplicateUserException / InvalidCredentialsException / 等
+│   │                                    （extends ResourceException / AuthException）
+│   └── exception-catalog/
+│       └── exception-catalog.exception.ts  ← 异常目录的领域异常（如有）
 │
 └── app.filter.ts                     ← 包含三个 Filter 类（单文件）
-                                         AllExceptionsFilter：兜底，处理 AppException + 未知异常
+                                         AllExceptionFilter：兜底，处理 AppException + 未知异常
                                          ZodExceptionFilter：@Catch(ZodValidationException, ZodSerializationException)
                                          ThrottlerExceptionFilter：@Catch(ThrottlerException)
 ```

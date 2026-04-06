@@ -2,7 +2,7 @@
 title: 版本路线图
 inherits: docs/04-planning/STANDARD.md
 status: active
-version: "0.7.0"
+version: "0.7.1"
 last-updated: 2026-04-06
 category: planning
 related:
@@ -22,6 +22,7 @@ related:
 
 | 版本 | 发布日期 | 状态 | 核心主题 |
 |------|---------|------|---------|
+| [v0.7.1](#v071--cicd-与脚本缺陷修复) | 2026-04-06 | ✅ 已发布 | PostgreSQL 健康检查、分支匹配、构建管理修复 |
 | [v0.7.0](#v070--api-文档-文档站与-cicd-流水线) | 2026-04-06 | ✅ 已发布 | @ApiRoute、VitePress 文档站、可复用 CI、CD 自动部署 |
 | [v0.6.2](#v062--异常系统重构与配置架构整合) | 2026-04-04 | ✅ 已发布 | 异常体系重构、config 整合、Docker 编排、工具链升级 |
 | [v0.6.1](#v061--数据模型与中间件修复) | 2026-03-28 | ✅ 已发布 | Prisma schema 补全、Middleware 修复、文档更新 |
@@ -31,6 +32,19 @@ related:
 | [v0.3.x](#v03x--提交规范与流程标准化) | 2025-12-20~21 | ✅ 已发布 | 提交规范、工作流重命名、Prisma 升级 |
 | [v0.2.0](#v020--cicd-初始化) | 2025-12 | ✅ 已发布 | CI/CD 工作流 + Docker |
 | [v0.1.0](#v010--项目初始化) | 2025-11 | ✅ 已发布 | NestJS 项目 scaffold |
+
+---
+
+## v0.7.1 — CI/CD 与脚本缺陷修复
+
+> 发布日期：2026-04-06｜分支：`release/0.7` → `main`｜状态：✅ 已发布
+
+**目标**：修复 v0.7.0 上线后暴露的 CI/CD、脚本和文档构建问题，无功能性变更。
+
+- [x] **CI Release 分支触发修复**：`ci-release.yaml` 分支模式 `release-[0-9]*` 改为 `release/**`，匹配实际 `release/X.Y` 命名规范
+- [x] **版本验证脚本修复**：`scripts/validate-release-version.cjs` 正则由 `release-X.Y` 改为 `release/X.Y` 格式
+- [x] **VitePress 构建修复**：`pr-0.7.0.md` frontmatter `head: dev` 重命名为 `branch: dev`，消除与 VitePress 保留字段的冲突
+- [x] **`openapi.json` 移出 git 追踪**，添加至 `.gitignore`
 
 ---
 

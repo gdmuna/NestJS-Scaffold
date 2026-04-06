@@ -112,7 +112,8 @@ jobs:
           POSTGRES_PASSWORD: cd_export_pass
           POSTGRES_DB: nestjs_cd_export
         options: >-
-          --health-cmd pg_isready
+          --health-cmd "pg_isready -U cd_export -d nestjs_cd_export"
+          --health-start-period 10s
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5

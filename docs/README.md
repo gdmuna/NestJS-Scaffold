@@ -1,8 +1,8 @@
 ---
 title: 文档索引
 status: active
-version: "0.5.3"
-last-updated: 2026-03-26
+version: "0.7.1"
+last-updated: 2026-04-06
 category: index
 ---
 
@@ -36,7 +36,7 @@ category: index
 | [STANDARD.md](02-architecture/STANDARD.md) | active | 架构设计规范：分层约束、模块依赖规则、子文档格式标准 |
 | [project-architecture-overview.md](02-architecture/project-architecture-overview.md) | active | 主节点：技术栈、系统分层图、模块职责、子文档导航 |
 | [request-pipeline.md](02-architecture/request-pipeline.md) | active | 请求生命周期：中间件→守卫→管道→拦截器→异常过滤器全链路 |
-| [auth-module.md](02-architecture/auth-module.md) | active | 认证模块：JWT RS256 双令牌、Cookie 配置、令牌轮换流程 |
+| [auth-module.md](02-architecture/auth-module.md) | active | 认证模块：JWT ES256 双令牌、Cookie 配置、令牌轮换流程 |
 | [database.md](02-architecture/database.md) | active | 数据库层：连接池、慢查询监控、参数脱敏、Prisma 错误映射 |
 | [exception-system.md](02-architecture/exception-system.md) | active | 异常系统设计：异常类层级、错误码体系、Result 类型契约、装饰器注册机制 |
 | [route-decorator.md](02-architecture/route-decorator.md) | active | 路由契约装饰器设计：@ApiRoute 选项接口、认证策略、元数据键体系、消费层分工 |
@@ -50,13 +50,16 @@ category: index
 |------|------|------|
 | [STANDARD.md](03-reference/STANDARD.md) | active | 参考文档规范 |
 | [api-reference.md](03-reference/api-reference.md) | active | API 参考文档 |
+| [error-reference.md](03-reference/error-reference.md) | active | 错误码参考文档 |
 
 ### 04-planning/ — 规划
 
 | 文档 | 状态 | 说明 |
 |------|------|------|
 | [STANDARD.md](04-planning/STANDARD.md) | active | 规划文档规范 |
-| [roadmap.md](04-planning/roadmap.md) | active | 版本路线图：v0.1.0~v0.5.3 历史（分组细节）、v0.6.0 进行中（严格追踪）、规划中条目 |
+| [roadmap.md](04-planning/roadmap.md) | active | 版本路线图：v0.1.0~v0.7.1 历史记录、规划中条目 |
+| [pr-0.7.0.md](04-planning/pr-0.7.0.md) | active | v0.7.0 PR 说明文档 |
+| [pr-0.7.1.md](04-planning/pr-0.7.1.md) | active | v0.7.1 PR 说明文档 |
 
 ### 05-audits/ — 审计
 

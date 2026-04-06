@@ -2,8 +2,8 @@
 title: CI/CD 与部署
 inherits: docs/02-architecture/STANDARD.md
 status: active
-version: "0.5.3"
-last-updated: 2026-03-26
+version: "0.7.1"
+last-updated: 2026-04-06
 category: architecture
 related:
   - docs/02-architecture/STANDARD.md
@@ -20,13 +20,13 @@ related:
 
 ```mermaid
 flowchart LR
-    FT["push → feature/*"] --> CF["ci-feature\nlint + build"]
-    DV["push → dev"] --> CICDD["ci-cd-dev\nlint + test + coverage\n+ 开发环境部署"]
-    RL["push → release-*"] --> CR["ci-release\nlint + test + E2E（含 DB）"]
-    RL --> PRD["pr-check-prod（PR → main）"]
-    PRD --> AT["auto-tag-release\n版本提取 + tag 创建"]
+    FT["push → feature/**"] --> CF["ci-feature\nlint + test（via ci-reusable）"]
+    DV["push → dev"] --> CIDEV["ci-dev\nlint + test（via ci-reusable）"]
+    CIDEV -- "成功" --> CDDEV["cd-dev\n构建 + 开发环境部署"]
+    RL["push → release/**"] --> CR["ci-release\nlint + test + 版本检查（via ci-reusable）"]
+    MN["push → main"] --> CP["ci-prod\nlint + test（via ci-reusable）"]
+    PRD["PR 合并 → main\n（from release/*）"] --> AT["auto-tag-release\n版本提取 + tag 创建"]
     AT -- "tag 创建" --> CDP["cd-prod\n生产部署"]
-    MN["push → main"] --> CP["ci-prod\nlint + test + E2E（含 DB）"]
 ```
 
 ---
@@ -35,16 +35,16 @@ flowchart LR
 
 | 文件 | 触发条件 | 核心步骤 | 含 DB 服务 |
 |------|---------|---------|-----------|
-| `ci-feature.yaml` | push → `feature/*` | lint + build | 否 |
-| `ci-cd-dev.yaml` | push → `dev` | lint + test + coverage + 开发部署 | 否 |
-| `ci-release.yaml` | push → `release-[0-9]*` | lint + test + E2E | 是 |
-| `ci-prod.yaml` | push → `main` | lint + test + E2E | 是 |
-| `auto-tag-release.yaml` | PR closed → `main`（from `release-*`）| 版本提取 + 创建 tag | 否 |
+| `ci-reusable.yaml` | workflow_call（被其他 CI 复用）| lint + build + test + E2E | 是 |
+| `ci-feature.yaml` | push → `feature/**`, `fix/**`, `refactor/**` | lint + test（via ci-reusable）| 是（via ci-reusable）|
+| `ci-dev.yaml` | push → `dev` | lint + test（via ci-reusable）| 是（via ci-reusable）|
+| `cd-dev.yaml` | ci-dev 成功完成 | 构建并推送 Docker 镜像，部署至开发环境 | 否 |
+| `ci-release.yaml` | push → `release/**` | lint + test + 版本号校验（via ci-reusable）| 是（via ci-reusable）|
+| `ci-prod.yaml` | push → `main` | lint + test（via ci-reusable）| 是（via ci-reusable）|
+| `auto-tag-release.yaml` | PR 合并至 `main`（from `release/*`）| 版本提取 + 创建 tag | 否 |
 | `cd-prod.yaml` | tag 创建事件 | 生产环境部署 | 否 |
 | `pr-check-dev.yaml` | PR → `dev` | 规范性检查 | — |
-| `pr-check-prod.yaml` | PR → `main` | 规范性检查 | — |
-| `release-snapshot.yaml` | 手动 / 自动 | 生成快照版本信息 | 否 |
-| `deploy-to-server.yaml` | 手动触发 | 推送到目标服务器 | 否 |
+| `pr-check-prod.yaml` | PR → `main` | 规范性检查 + 版本号检查 | — |
 
 **公共配置**：Node.js 22、pnpm 10、Runner: `ubuntu-latest`
 
@@ -56,11 +56,12 @@ flowchart LR
 
 | 配置项 | 值 |
 |--------|-----|
-| 镜像 | `postgres:18.1-alpine` |
+| 镜像 | `postgres:18` |
 | `POSTGRES_USER` | `ci_test` |
 | `POSTGRES_PASSWORD` | `ci_test_password` |
 | `POSTGRES_DB` | `nestjs_demo_basic_test` |
 | 映射端口 | `5432` |
+| 健康检查 | `pg_isready -U ci_test -d nestjs_demo_basic_test`，间隔 10s，超时 5s，start-period 10s，重试 5 次 |
 
 注入到 CI Job 的 `DATABASE_URL`：
 
@@ -72,11 +73,11 @@ postgresql://ci_test:ci_test_password@localhost:5432/nestjs_demo_basic_test?sche
 
 ## 4. 自动版本标签（auto-tag-release）
 
-当 `release-*` 分支的 PR 被合并到 `main` 时自动触发：
+当 `release/*` 分支的 PR 被合并到 `main` 时自动触发：
 
 ```mermaid
 flowchart TD
-    A["PR merged: release-vX.Y.Z → main"] --> B["从 PR head 分支名提取版本号"]
+    A["PR merged: release/X.Y → main"] --> B["从 package.json 提取版本号"]
     B --> C["node scripts/create-release-tag.cjs"]
     C --> D{tag 已存在?}
     D -- 是 --> E["跳过，幂等退出"]

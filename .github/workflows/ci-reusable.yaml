@@ -61,7 +61,8 @@ jobs:
           POSTGRES_PASSWORD: ci_test_password
           POSTGRES_DB: nestjs_demo_basic_test
         options: >-
-          --health-cmd pg_isready
+          --health-cmd "pg_isready -U ci_test -d nestjs_demo_basic_test"
+          --health-start-period 10s
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5

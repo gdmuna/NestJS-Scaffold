@@ -5,6 +5,20 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.7.1] - 2026-04-06
+
+### 🐛 修复
+
+- **`fix(ci)`**：修复 `ci-release.yaml` 分支匹配模式 `release-[0-9]*` 无法匹配 `release/**` 命名规范的问题，导致 release 分支 CI 不触发
+- **`fix(scripts)`**：修复 `scripts/validate-release-version.cjs` 中版本前缀提取正则将连字符格式 `release-X.Y` 与实际斜杠格式 `release/X.Y` 混淆，导致版本验证始终抛出异常
+- **`fix(docs)`**：修复 `docs/04-planning/pr-0.7.0.md` 中 frontmatter `head: dev` 与 VitePress 保留字段冲突，导致文档镜像构建时抛出 `head.find is not a function`；将字段重命名为 `branch`
+
+### 🔧 构建 / 工具链
+
+- **`chore`**：`website/public/reference/openapi.json` 移出 git 追踪，添加至 `.gitignore`，避免每次导出产生大量无意义 diff
+
+---
+
 ## [0.7.0] - 2026-04-06
 
 ### ✨ 新功能

@@ -2,8 +2,8 @@
 title: AI 文档操作手册
 inherits: AGENTS.md
 status: active
-version: "0.5.3"
-last-updated: 2026-03-26
+version: "0.7.1"
+last-updated: 2026-04-06
 category: meta
 related:
   - docs/STANDARD.md
