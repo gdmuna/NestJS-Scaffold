@@ -13,7 +13,7 @@ export const THROTTLE_LIMIT =
 export const REQUEST_TIMEOUT_MS = Number(process.env.REQUEST_TIMEOUT_MS || 30000);
 
 /** 请求 ID header 名称，贯穿完整请求链路 */
-export const REQUEST_ID_HEADER = process.env.REQUEST_ID_HEADER || 'x-request-id';
+export const REQUEST_ID_HEADER = process.env.REQUEST_ID_HEADER?.toLowerCase() || 'x-request-id';
 
 /** CORS 预检缓存时间（秒），对应 Access-Control-Max-Age */
 export const CORS_PREFLIGHT_MAX_AGE_SECONDS = Number(
@@ -44,7 +44,10 @@ export const httpConfigValidateSchema = z
             .transform((val) => (val === 'Infinity' ? Infinity : val))
             .default(1000),
         REQUEST_TIMEOUT_MS: z.coerce.number().int().min(1000).max(120000).default(30000),
-        REQUEST_ID_HEADER: z.string().default('x-request-id'),
+        REQUEST_ID_HEADER: z
+            .string()
+            .default('x-request-id')
+            .transform((h) => h.toLowerCase()),
         CORS_PREFLIGHT_MAX_AGE_SECONDS: z.coerce.number().int().min(0).default(86400),
         CORS_ALLOWED_METHODS: z
             .string()
