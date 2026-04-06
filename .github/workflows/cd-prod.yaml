@@ -20,7 +20,6 @@ env:
   BACKEND_IMAGE: ${{ vars.DOCKER_USERNAME || github.repository_owner }}/${{ vars.DOCKER_REPO_NAME || github.event.repository.name }}
   DOCS_IMAGE: ${{ vars.DOCKER_USERNAME || github.repository_owner }}/${{ vars.DOCKER_DOCS_REPO_NAME || format('{0}-docs', github.event.repository.name) }}
   DOTENV_PRIVATE_KEY_TEST: ${{ secrets.DOTENV_PRIVATE_KEY_TEST }}
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
 concurrency:
   group: cd-production-${{ github.ref }}
