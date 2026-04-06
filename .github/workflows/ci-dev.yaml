@@ -4,6 +4,9 @@ on:
   push:
     branches: [dev]
 
+permissions:
+  contents: read
+
 concurrency:
   group: ci-development-${{ github.ref }}
   cancel-in-progress: true
