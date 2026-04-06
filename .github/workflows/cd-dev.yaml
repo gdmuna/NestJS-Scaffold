@@ -87,6 +87,7 @@ jobs:
           pnpm prisma migrate deploy
         env:
           DATABASE_URL: postgresql://cd_export:cd_export_pass@localhost:5432/nestjs_cd_export?schema=public
+          SHADOW_DATABASE_URL: postgresql://cd_export:cd_export_pass@localhost:5432/nestjs_cd_export?schema=public
 
       - uses: docker/login-action@v3
         with:
