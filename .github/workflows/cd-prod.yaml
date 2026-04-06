@@ -148,19 +148,13 @@ jobs:
           username: ${{ env.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Decrypt .env.test
-        run: |
-          npx --yes @dotenvx/dotenvx decrypt \
-            --env-file .env.test \
-            --stdout > /tmp/.env.cd_export
-
       - name: Start backend container for OpenAPI export
         run: |
           docker run -d \
             --name backend-export \
             --network host \
-            --env-file /tmp/.env.cd_export \
-            -e NODE_ENV=production \
+            -e DOTENV_PRIVATE_KEY_TEST=${{ secrets.DOTENV_PRIVATE_KEY_TEST }} \
+            -e NODE_ENV=test \
             -e DATABASE_URL="postgresql://cd_export:cd_export_pass@localhost:5432/nestjs_cd_export?schema=public" \
             -e PORT=3000 \
             ${{ env.BACKEND_IMAGE }}:${{ needs.extract-version.outputs.backend_tag_latest }}
