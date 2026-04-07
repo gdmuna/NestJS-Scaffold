@@ -2,7 +2,7 @@
  * OpenAPI JSON 生成脚本
  *
  * 从正在运行的后端实例获取 OpenAPI schema，保存到
- * website/public/reference/openapi.json，供本地文档构建和 Docker 镜像构建使用。
+ * website/api-reference/openapi.json，供本地文档构建和 Docker 镜像构建使用。
  *
  * 用法：
  *   pnpm docs:gen-openapi                           # 使用默认地址 http://localhost:3000
