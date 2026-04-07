@@ -26,8 +26,8 @@
     "env:decrypt": "dotenvx decrypt -f .env.development .env.test .env.production",
     "prepare": "husky",
     "docs:gen-reference": "tsx scripts/generate-error-reference.ts",
-    "docs:gen-openapi": "tsx scripts/generate-openapi.ts",
-    "docs:dev": "pnpm docs:gen-reference && pnpm --filter website dev",
+    "docs:gen-openapi": "dotenvx run -f .env.development -- tsx scripts/generate-openapi.ts",
+    "docs:dev": "pnpm docs:gen-reference && dotenvx run -f .env.development -- pnpm --filter website dev",
     "docs:build": "pnpm docs:gen-reference && pnpm --filter website build",
     "docs:serve": "pnpm --filter website serve"
   },

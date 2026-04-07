@@ -25,7 +25,8 @@ export default defineConfig({
             { text: '文档', link: '/' },
             {
                 text: 'API Reference',
-                link: 'http://localhost:3000/reference',
+                // 本地开发默认指向 backend dev server；Dockerfile 构建时通过 ARG VITE_API_REFERENCE_URL 覆盖
+                link: process.env.VITE_API_REFERENCE_URL ?? 'http://localhost:3000/reference',
                 target: '_blank',
             },
             {
@@ -37,10 +38,7 @@ export default defineConfig({
         sidebar: [
             {
                 text: '指南',
-                items: [
-                    { text: '贡献指南', link: '/01-guides/contributing' },
-                    { text: 'Docusaurus 配置指南', link: '/01-guides/docusaurus-setup' },
-                ],
+                items: [{ text: '贡献指南', link: '/01-guides/contributing' }],
             },
             {
                 text: '架构设计',
@@ -68,7 +66,13 @@ export default defineConfig({
             },
             {
                 text: '规划',
-                items: [{ text: '路线图', link: '/04-planning/roadmap' }],
+                items: [
+                    { text: 'PR 0.7.0', link: '/04-planning/pr-0.7.0.md' },
+                    { text: 'PR 0.7.1', link: '/04-planning/pr-0.7.1.md' },
+                    { text: 'PR 0.7.2', link: '/04-planning/pr-0.7.2.md' },
+                    { text: 'PR 0.7.3', link: '/04-planning/pr-0.7.3.md' },
+                    { text: '路线图', link: '/04-planning/roadmap' },
+                ],
             },
         ],
 
@@ -125,9 +129,14 @@ export default defineConfig({
         darkModeSwitchTitle: '切换到深色模式',
         sidebarMenuLabel: '菜单',
         returnToTopLabel: '回到顶部',
+
+        i18nRouting: true,
     },
 
     vite: {
+        server: {
+            port: Number(process.env.VITE_API_DOCS_PORT || 5173),
+        },
         ssr: {
             // vitepress-mermaid-renderer 包含浏览器 API，SSR 时不打包
             noExternal: ['vitepress-mermaid-renderer'],
