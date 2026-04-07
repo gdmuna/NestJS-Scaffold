@@ -4,14 +4,14 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vitepress dev --port 5173",
+    "dev": "vitepress dev",
     "build": "vitepress build",
-    "serve": "vitepress preview --port 4000",
-    "preview": "vitepress preview --port 4000"
+    "serve": "vitepress preview",
+    "preview": "vitepress preview"
   },
   "dependencies": {
-    "vitepress": "^1.6.3",
+    "vitepress": "^1.6.4",
     "vitepress-mermaid-renderer": "^1.1.20",
-    "vue": "^3.5.13"
+    "vue": "^3.5.32"
   }
 }

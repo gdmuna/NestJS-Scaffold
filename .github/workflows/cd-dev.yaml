@@ -124,8 +124,8 @@ jobs:
           docker run -d \
             --name backend-export \
             --network host \
-            --env-file /tmp/.env.cd_export \
-            -e NODE_ENV=production \
+            -e DOTENV_PRIVATE_KEY_TEST=${{ secrets.DOTENV_PRIVATE_KEY_TEST }} \
+            -e NODE_ENV=test \
             -e DATABASE_URL="postgresql://cd_export:cd_export_pass@localhost:5432/nestjs_cd_export?schema=public" \
             -e PORT=3000 \
             ${{ env.BACKEND_IMAGE }}:dev-latest
@@ -154,7 +154,7 @@ jobs:
       - name: Upload OpenAPI artifact
         uses: actions/upload-artifact@v4
         with:
-          name: openapi-json-dev-${{ github.run_id }}
+          name: openapi-json-${{ github.run_id }}
           path: openapi.json
           retention-days: 7
 
@@ -169,12 +169,6 @@ jobs:
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
 
-      - name: Download OpenAPI artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: openapi-json-dev-${{ github.run_id }}
-          path: scripts/
-
       - uses: docker/setup-buildx-action@v3
 
       - uses: docker/login-action@v3
@@ -186,12 +180,10 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: .
-          file: website/Dockerfile
+          file: website/Dockerfile.dev
           push: true
           tags: |
             ${{ env.DOCS_IMAGE }}:dev-latest
-          build-args: |
-            OPENAPI_JSON_PATH=scripts/openapi.json
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -216,7 +208,43 @@ jobs:
             exit 1
           fi
 
-  # ── 5. 汇总报告 ──────────────────────────────────────────────
+  # ── 5. 推送 Swagger JSON 到 Apifox ─────────────────────────
+  sync-apifox:
+    name: Sync OpenAPI to Apifox
+    needs: [export-openapi]
+    runs-on: ubuntu-latest
+    continue-on-error: true # Apifox 同步失败不阻断 CD 主流程
+
+    steps:
+      - name: Download OpenAPI artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: openapi-json-${{ github.run_id }}
+          path: assets
+
+      - name: Push OpenAPI to Apifox
+        run: |
+          RESPONSE=$(curl -sf --max-time 60 \
+            -X POST "https://api.apifox.com/v1/projects/${{ secrets.APIFOX_PROJECT_ID }}/import-openapi?locale=zh-CN" \
+            -H "X-Apifox-Api-Version: 2024-03-28" \
+            -H "Authorization: Bearer ${{ secrets.APIFOX_ACCESS_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            --data-raw "$(jq -n \
+              --slurpfile spec assets/openapi.json \
+              '{
+                input: { url: null, content: ($spec[0] | tojson) },
+                options: {
+                  endpointOverwriteBehavior: "OVERWRITE_EXISTING",
+                  schemaOverwriteBehavior: "OVERWRITE_EXISTING",
+                  updateFolderOfChangedEndpoint: true,
+                  prependBasePath: false,
+                  deleteUnmatchedResources: false
+                }
+              }')")
+          echo "Apifox response:"
+          echo "$RESPONSE" | python3 -m json.tool || echo "$RESPONSE"
+
+  # ── 6. 汇总报告 ──────────────────────────────────────────────
   finished:
     name: CD Summary
     needs:
@@ -224,6 +252,7 @@ jobs:
       - export-openapi
       - build-docs
       - notify-server
+      - sync-apifox
     if: always()
     runs-on: ubuntu-latest
 
@@ -249,6 +278,7 @@ jobs:
           EO=$(status_icon "${{ needs.export-openapi.result }}")
           BD=$(status_icon "${{ needs.build-docs.result }}")
           NS=$(status_icon "${{ needs.notify-server.result }}")
+          SA=$(status_icon "${{ needs.sync-apifox.result }}")
 
           CI_ICON=$(status_icon "$CI_RESULT")
 
@@ -271,6 +301,7 @@ jobs:
           | OpenAPI 导出 | $EO ${{ needs.export-openapi.result }} |
           | 文档镜像构建 | $BD ${{ needs.build-docs.result }} |
           | 服务器通知   | $NS ${{ needs.notify-server.result }} |
+          | Apifox 同步  | $SA ${{ needs.sync-apifox.result }} |
 
           ## 镜像产物
 

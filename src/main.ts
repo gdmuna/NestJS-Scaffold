@@ -85,11 +85,6 @@ NestJS 后端基线模板 API，提供认证系统、健康检查和错误目录
   "details": null
 }
 \`\`\`
-
-## 链接
-
-- [标准 Swagger UI](/api-doc)
-- [错误码参考（动态列表）](/errors)
 `.trim();
 
     const docConfig = new DocumentBuilder()

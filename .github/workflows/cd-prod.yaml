@@ -148,19 +148,13 @@ jobs:
           username: ${{ env.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
 
-      - name: Decrypt .env.test
-        run: |
-          npx --yes @dotenvx/dotenvx decrypt \
-            --env-file .env.test \
-            --stdout > /tmp/.env.cd_export
-
       - name: Start backend container for OpenAPI export
         run: |
           docker run -d \
             --name backend-export \
             --network host \
-            --env-file /tmp/.env.cd_export \
-            -e NODE_ENV=production \
+            -e DOTENV_PRIVATE_KEY_TEST=${{ secrets.DOTENV_PRIVATE_KEY_TEST }} \
+            -e NODE_ENV=test \
             -e DATABASE_URL="postgresql://cd_export:cd_export_pass@localhost:5432/nestjs_cd_export?schema=public" \
             -e PORT=3000 \
             ${{ env.BACKEND_IMAGE }}:${{ needs.extract-version.outputs.backend_tag_latest }}
@@ -196,13 +190,19 @@ jobs:
   # ── 4. 构建并推送文档镜像 ───────────────────────────────────
   build-docs:
     name: Build & Push Docs Image
-    needs: [extract-version, build-backend]
+    needs: [extract-version, build-backend, export-openapi]
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.tag || github.ref }}
+
+      - name: Download OpenAPI artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: openapi-json-${{ github.run_id }}
+          path: assets
 
       - uses: docker/setup-buildx-action@v3
 
@@ -220,6 +220,8 @@ jobs:
           tags: |
             ${{ env.DOCS_IMAGE }}:${{ needs.extract-version.outputs.docs_tag_latest }}
             ${{ env.DOCS_IMAGE }}:${{ needs.extract-version.outputs.docs_tag_versioned }}
+          build-args: |
+            OPENAPI_JSON_PATH=assets/openapi.json
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -244,43 +246,7 @@ jobs:
             exit 1
           fi
 
-  # ── 6. 推送 Swagger JSON 到 Apifox ─────────────────────────
-  sync-apifox:
-    name: Sync OpenAPI to Apifox
-    needs: [export-openapi]
-    runs-on: ubuntu-latest
-    continue-on-error: true # Apifox 同步失败不阻断 CD 主流程
-
-    steps:
-      - name: Download OpenAPI artifact
-        uses: actions/download-artifact@v4
-        with:
-          name: openapi-json-${{ github.run_id }}
-          path: .
-
-      - name: Push OpenAPI to Apifox
-        run: |
-          RESPONSE=$(curl -sf --max-time 60 \
-            -X POST "https://api.apifox.com/v1/projects/${{ secrets.APIFOX_PROJECT_ID }}/import-openapi?locale=zh-CN" \
-            -H "X-Apifox-Api-Version: 2024-03-28" \
-            -H "Authorization: Bearer ${{ secrets.APIFOX_ACCESS_TOKEN }}" \
-            -H "Content-Type: application/json" \
-            --data-raw "$(jq -n \
-              --slurpfile spec openapi.json \
-              '{
-                input: { url: null, content: ($spec[0] | tojson) },
-                options: {
-                  endpointOverwriteBehavior: "OVERWRITE_EXISTING",
-                  schemaOverwriteBehavior: "OVERWRITE_EXISTING",
-                  updateFolderOfChangedEndpoint: true,
-                  prependBasePath: false,
-                  deleteUnmatchedResources: false
-                }
-              }')")
-          echo "Apifox response:"
-          echo "$RESPONSE" | python3 -m json.tool || echo "$RESPONSE"
-
-  # ── 7. 汇总报告 ──────────────────────────────────────────────
+  # ── 6. 汇总报告 ──────────────────────────────────────────────
   finished:
     name: CD Summary
     needs:
@@ -289,7 +255,6 @@ jobs:
       - export-openapi
       - build-docs
       - notify-server
-      - sync-apifox
     if: always()
     runs-on: ubuntu-latest
 
@@ -314,7 +279,6 @@ jobs:
           EO=$(status_icon "${{ needs.export-openapi.result }}")
           BD=$(status_icon "${{ needs.build-docs.result }}")
           NS=$(status_icon "${{ needs.notify-server.result }}")
-          SA=$(status_icon "${{ needs.sync-apifox.result }}")
 
           cat >> "$GITHUB_STEP_SUMMARY" << EOF
           # 🚀 CD 报告 - Production
@@ -329,7 +293,6 @@ jobs:
           | OpenAPI 导出 | $EO ${{ needs.export-openapi.result }} |
           | 文档镜像构建 | $BD ${{ needs.build-docs.result }} |
           | 服务器通知   | $NS ${{ needs.notify-server.result }} |
-          | Apifox 同步  | $SA ${{ needs.sync-apifox.result }} |
 
           ## 镜像产物
 

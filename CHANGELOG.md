@@ -5,17 +5,90 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.7.3] - 2026-04-07
+
+### ✨ 新功能 / 改进
+
+#### 文档站
+
+- **`feat(docs)`**：文档站 Docker 配置拆分为 `Dockerfile.dev` / `Dockerfile.prod` 两套，nginx 配置同步拆分为 `nginx.dev.conf` / `nginx.prod.conf`
+  - `Dockerfile.dev`：API Reference 指向 Apifox 外链，不打包 Scalar 页，镜像精简
+  - `Dockerfile.prod`：内嵌 Scalar API Reference 静态页（`/reference/api/`）和 `openapi.json`，无外部服务依赖
+- **`feat(docs)`**：`nginx.prod.conf` 新增 gzip 压缩、安全 headers、`/reference/api` 静态位置（=404 fallback）、`/assets/` 长效强缓存（`Cache-Control: public, immutable`）
+- **`feat(docs)`**：VitePress API Reference 导航链接改由 `VITE_API_REFERENCE_URL` 环境变量控制；dev server 端口改由 `VITE_API_DOCS_PORT` 控制（默认 5173）
+- **`feat(docs)`**：`docs:gen-openapi` / `docs:dev` 脚本改用 `dotenvx run -f .env.development --` 注入环境变量，移除硬编码端口
+- **`feat(docs)`**：VitePress 侧边栏「规划」分组新增 PR 0.7.0–0.7.3 条目；移除已废弃的「Docusaurus 配置指南」条目
+
+#### CI/CD 流水线
+
+- **`feat(ci)`**：Apifox OpenAPI 同步 Job（`sync-apifox`）从 `cd-prod.yaml` 迁移至 `cd-dev.yaml`，避免 prod 流程受第三方服务影响
+
+#### API 文档
+
+- **`feat(src)`**：`src/main.ts` 移除 Swagger 描述中的静态链接段落，由文档站统一承载
+
+### 🐛 修复
+
+- **`fix(ci)`**：修复 `cd-prod.yaml` 中 OpenAPI 导出容器因 `--env-file` 不支持多行 EC 私钥值而导致启动失败的问题
+  - 移除 "Decrypt .env.test" 步骤（不再生成中间临时文件 `/tmp/.env.cd_export`）
+  - 改为 `docker run -e DOTENV_PRIVATE_KEY_TEST=...`，容器内 dotenvx 解密 `.env.test`
+  - `NODE_ENV=production` 改为 `NODE_ENV=test`，与 `.env.test` 文件及私钥名 `DOTENV_PRIVATE_KEY_TEST` 保持一致
+- **`fix(ci)`**：`cd-dev.yaml` 文档镜像构建更新 Dockerfile 引用为 `website/Dockerfile.dev`
+- **`fix(ci)`**：修复 `cd-dev.yaml` artifact 上传路径错误（`path: assets` → `path: openapi.json`）；下载路径错误（`path: assets/openapi.json` → `path: assets`）；`build-docs` 和 `sync-apifox` 两处同步修正
+- **`fix(ci)`**：修复 `cd-prod.yaml` `build-docs` job 缺少 `export-openapi` 依赖及 `OPENAPI_JSON_PATH` build-arg，确保 prod 镜像构建时能正确注入最新导出的 `openapi.json`
+
+### 🔧 构建 / 工具链
+
+- **`chore(env)`**：重新加密 `.env.development`、`.env.production`、`.env.test`，新增 `VITE_API_DOCS_PORT` 条目
+- **`chore(docs)`**：`scripts/generate-openapi.ts` 输出路径改为 `website/api-reference/openapi.json`；`BACKEND_URL` 改为读取 `PORT` 环境变量
+
+---
+
+## [0.7.2] - 2026-04-07
+
+###  构建 / 工具链
+
+- **`fix(ci)`**：补缺 `cd-dev.yaml` 和 `cd-prod.yaml` 中 Postgres 服务端口映射 `- 5432:5432`，修复 E2E 测试无法连接数据库的问题
+
+---
+
 ## [0.7.1] - 2026-04-06
 
 ### 🐛 修复
 
-- **`fix(ci)`**：修复 `ci-release.yaml` 分支匹配模式 `release-[0-9]*` 无法匹配 `release/**` 命名规范的问题，导致 release 分支 CI 不触发
-- **`fix(scripts)`**：修复 `scripts/validate-release-version.cjs` 中版本前缀提取正则将连字符格式 `release-X.Y` 与实际斜杠格式 `release/X.Y` 混淆，导致版本验证始终抛出异常
-- **`fix(docs)`**：修复 `docs/04-planning/pr-0.7.0.md` 中 frontmatter `head: dev` 与 VitePress 保留字段冲突，导致文档镜像构建时抛出 `head.find is not a function`；将字段重命名为 `branch`
+#### CI/CD 流水线
+
+- **`fix(ci)`**：修复 `ci-reusable.yaml`、`cd-dev.yaml`、`cd-prod.yaml` 中 `pg_isready` 未指定用户/数据库参数，导致 PostgreSQL 容器尚未就绪时健康检查即已通过，后续步骤连接失败
+  - `--health-cmd` 改为 `pg_isready -U ci_test -d nestjs_demo_basic_test`
+  - 新增 `--health-start-period 30s`；检查间隔 10s→5s；重试 5→10 次
+  - 连接 URL 从 `localhost` 改为 `127.0.0.1`，绕开 IPv6 优先解析导致的连接失败
+  - test job 中新增显式等待步骤确认 `127.0.0.1:5432` 端口可达
+
+- **`fix(ci)`**：修复 `ci-release.yaml` 分支匹配模式 `release-[0-9]*` 无法匹配实际斜杠命名 `release/X.Y` 导致 release 分支 CI 未被触发
+
+- **`fix(scripts)`**：修复 `scripts/validate-release-version.cjs` 版本前缀提取正则由 `release-X.Y` 改为 `release/X.Y` 格式，消除版本验证始终抛出异常的问题
+
+- **`fix(docs)`**：修复 `docs/04-planning/pr-0.7.0.md` frontmatter `head: dev` 与 VitePress 保留字段冲突导致 `head.find is not a function` 错误，将字段重命名为 `branch: dev`
+
+### 📚 文档
+
+- **`docs`**：所有架构文档同步至 v0.7.1，完全对齐 v0.7.0 + v0.7.1 实现
+  - 所有 `docs/02-architecture/` 文档升至 v0.7.1，frontmatter 和内容完全对齐实现
+  - **auth-module.md**：修复 Mermaid 中 TokenService JWT 算法表示（RS256 → ES256）
+  - **project-architecture-overview.md**：更新技术栈版本（Node.js ≥22、PostgreSQL ≥18）、Mermaid 控制器引用（ErrorCatalogController → ExceptionCatalogController）、Header 版本字段
+  - **contributing.md**：更新分支命名约定（`release-X.Y` → `release/X.Y`）；重写 CI/CD 触发条件表（移除已删除工作流 `ci-cd-dev.yaml`、`release-snapshot.yaml` 等；修正触发规范）
+  - **cicd-deployment.md**：完整重写工作流拓扑 Mermaid（正确映射 10 个实际工作流）；更新工作流配置表（新增 health check 参数说明、DB URL 改用 `localhost`）；自动标签流程改为从 package.json 提取版本
+  - **request-pipeline.md**：修复 ThrottlerGuard/AuthGuard 错误码映射；重写 AuthGuard 部分（ES256 算法、新的三策略系统、新错误码 AUTH_TOKEN_MISSING/INVALID）；完整重写异常过滤器分层架构与错误码表
+  - **exception-system.md**：修正异常文件路径（singular 格式验证：`auth.exception.ts`、`database.exception.ts` 等）；替换 Result<T,E> 伪代码为实际 `to()` 元组结果模式；更新异常注册机制（通过 `src/common/exceptions/index.ts` 直接 import）；完整重写异常目录结构清单
+  - **database.md**：重写 Prisma 错误处理部分（DatabaseService 内 try/catch 而非 AllExceptionsFilter 统一处理）；更新错误码前缀与映射（DB_* 格式）
+  - **route-decorator.md**：完整重写（`ApiRouteOptions.errors` 类型改为 `string[]`；元数据键从 `ROUTE_AUTH_KEY` 改为 `AUTH_STRATEGY_KEY`；移除 `IS_PUBLIC_KEY` 兼容层说明；更新装饰器展开逻辑与消费层文档）
+  - **openapi-enrichment.md**：移除 `IS_PUBLIC_KEY` 引用；安全方案推断改为基于 `auth='public'` 判断；版本升至 v0.7.1
+  - **observability.md**、**docs/AGENTS.md**：版本升至 v0.7.1（内容无变化）
+  - **docs/README.md**：更新索引条目中各文档的描述与版本信息、技术栈特征标注
 
 ### 🔧 构建 / 工具链
 
-- **`chore`**：`website/public/reference/openapi.json` 移出 git 追踪，添加至 `.gitignore`，避免每次导出产生大量无意义 diff
+- **`chore`**：`website/public/reference/openapi.json` 移出 git 追踪，添加至 `.gitignore`，避免每次 OpenAPI 导出产生 6000+ 行无意义 diff
 
 ---
 
