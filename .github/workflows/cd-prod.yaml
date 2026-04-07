@@ -190,13 +190,19 @@ jobs:
   # ── 4. 构建并推送文档镜像 ───────────────────────────────────
   build-docs:
     name: Build & Push Docs Image
-    needs: [extract-version, build-backend]
+    needs: [extract-version, build-backend, export-openapi]
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.tag || github.ref }}
+
+      - name: Download OpenAPI artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: openapi-json-${{ github.run_id }}
+          path: assets
 
       - uses: docker/setup-buildx-action@v3
 
@@ -214,6 +220,8 @@ jobs:
           tags: |
             ${{ env.DOCS_IMAGE }}:${{ needs.extract-version.outputs.docs_tag_latest }}
             ${{ env.DOCS_IMAGE }}:${{ needs.extract-version.outputs.docs_tag_versioned }}
+          build-args: |
+            OPENAPI_JSON_PATH=assets/openapi.json
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -238,7 +246,7 @@ jobs:
             exit 1
           fi
 
-  # ── 7. 汇总报告 ──────────────────────────────────────────────
+  # ── 6. 汇总报告 ──────────────────────────────────────────────
   finished:
     name: CD Summary
     needs:
