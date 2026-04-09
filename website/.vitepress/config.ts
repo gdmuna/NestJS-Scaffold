@@ -1,7 +1,8 @@
-import { defineConfig } from 'vitepress';
+﻿import { defineConfig } from 'vitepress';
+import { tasklist } from '@mdit/plugin-tasklist';
 
 export default defineConfig({
-    title: 'NestJS Demo Basic',
+    title: 'NestJS Scaffold',
     description: 'NestJS 后端开发基线模板',
     lang: 'zh-Hans',
 
@@ -15,63 +16,82 @@ export default defineConfig({
     // scope 外的链接（如 ../README.md、../../CHANGELOG.md）忽略
     ignoreDeadLinks: true,
 
-    // README.md 作为根目录入口
-    rewrites: {
-        'README.md': 'index.md',
-    },
+    base: process.env.VITE_BASE_PATH || '/',
+
+    cleanUrls: true,
 
     themeConfig: {
         nav: [
-            { text: '文档', link: '/' },
+            { text: '首页', link: '/' },
+            { text: '快速开始', link: '/00-getting-started/quick-start' },
             {
                 text: 'API Reference',
                 // 本地开发默认指向 backend dev server；Dockerfile 构建时通过 ARG VITE_API_REFERENCE_URL 覆盖
                 link: process.env.VITE_API_REFERENCE_URL ?? 'http://localhost:3000/reference',
                 target: '_blank',
             },
-            {
-                text: 'GitHub',
-                link: 'https://github.com/gdmuna/nestjs-demo-basic',
-            },
         ],
 
         sidebar: [
             {
+                text: '开始',
+                items: [
+                    { text: '项目简介', link: '/00-getting-started/introduction' },
+                    { text: '核心理念', link: '/00-getting-started/philosophy' },
+                    { text: '快速上手', link: '/00-getting-started/quick-start' },
+                ],
+            },
+            {
                 text: '指南',
-                items: [{ text: '贡献指南', link: '/01-guides/contributing' }],
+                items: [
+                    { text: '环境搭建', link: '/01-guides/environment-setup' },
+                    { text: '开发工作流', link: '/01-guides/development-workflow' },
+                    { text: '测试指南', link: '/01-guides/testing' },
+                    { text: 'Docker 与部署', link: '/01-guides/docker-deployment' },
+                    { text: '贡献指南', link: '/01-guides/contributing' },
+                ],
+            },
+            {
+                text: 'Harness Engineering',
+                items: [
+                    { text: '什么是 Harness Engineering', link: '/02-harness/overview' },
+                    { text: '前置控制：引导层', link: '/02-harness/feedforward' },
+                    { text: '反馈控制：感知层', link: '/02-harness/feedback' },
+                ],
             },
             {
                 text: '架构设计',
                 items: [
                     {
                         text: '项目架构全览',
-                        link: '/02-architecture/project-architecture-overview',
+                        link: '/03-architecture/project-architecture-overview',
                     },
-                    { text: '认证模块', link: '/02-architecture/auth-module' },
-                    { text: '请求管道', link: '/02-architecture/request-pipeline' },
-                    { text: '数据库', link: '/02-architecture/database' },
-                    { text: '异常系统', link: '/02-architecture/exception-system' },
-                    { text: '可观测性', link: '/02-architecture/observability' },
-                    { text: 'OpenAPI 增强', link: '/02-architecture/openapi-enrichment' },
-                    { text: '路由装饰器', link: '/02-architecture/route-decorator' },
-                    { text: 'CI/CD 部署', link: '/02-architecture/cicd-deployment' },
+                    { text: '认证模块', link: '/03-architecture/auth-module' },
+                    { text: '请求生命周期', link: '/03-architecture/request-pipeline' },
+                    { text: '数据库', link: '/03-architecture/database' },
+                    { text: '异常系统', link: '/03-architecture/exception-system' },
+                    { text: '可观测性', link: '/03-architecture/observability' },
+                    { text: 'OpenAPI 增强', link: '/03-architecture/openapi-enrichment' },
+                    { text: '路由装饰器', link: '/03-architecture/route-decorator' },
+                    { text: 'CI/CD 部署', link: '/03-architecture/cicd-deployment' },
                 ],
             },
             {
                 text: '参考',
                 items: [
-                    { text: 'API Reference', link: '/03-reference/api-reference' },
-                    { text: '错误码参考', link: '/03-reference/error-reference' },
+                    { text: '参考资源', link: '/04-reference/external-resources' },
+                    { text: '错误码参考', link: '/04-reference/error-reference' },
+                    { text: '更新日志', link: '/changelog' },
                 ],
             },
             {
-                text: '规划',
+                text: '发布说明',
+                collapsed: true,
                 items: [
-                    { text: 'PR 0.7.0', link: '/04-planning/pr-0.7.0.md' },
-                    { text: 'PR 0.7.1', link: '/04-planning/pr-0.7.1.md' },
-                    { text: 'PR 0.7.2', link: '/04-planning/pr-0.7.2.md' },
-                    { text: 'PR 0.7.3', link: '/04-planning/pr-0.7.3.md' },
-                    { text: '路线图', link: '/04-planning/roadmap' },
+                    { text: 'v0.7.3', link: '/05-releases/pr-0.7.3' },
+                    { text: 'v0.7.2', link: '/05-releases/pr-0.7.2' },
+                    { text: 'v0.7.1', link: '/05-releases/pr-0.7.1' },
+                    { text: 'v0.7.0', link: '/05-releases/pr-0.7.0' },
                 ],
             },
         ],
@@ -102,8 +122,9 @@ export default defineConfig({
         socialLinks: [{ icon: 'github', link: 'https://github.com/gdmuna/nestjs-demo-basic' }],
 
         footer: {
-            message: 'Released under the MIT License.',
-            copyright: `Copyright © ${new Date().getFullYear()} NestJS Demo Basic`,
+            message:
+                '基于 <a href="https://github.com/gdmuna/nestjs-demo-basic/blob/main/LICENSE">MIT 许可</a> 发布',
+            copyright: `版权所有 © 2026-至今 <a href="https://github.com/gdmuna">GDMU-NA & GDMU-ACM</a>`,
         },
 
         editLink: {
@@ -140,6 +161,13 @@ export default defineConfig({
         ssr: {
             // vitepress-mermaid-renderer 包含浏览器 API，SSR 时不打包
             noExternal: ['vitepress-mermaid-renderer'],
+        },
+    },
+
+    markdown: {
+        config: (md) => {
+            // 渲染 GitHub 风格的 task list（- [ ] / - [x]）
+            md.use(tasklist);
         },
     },
 });

@@ -22,10 +22,16 @@ COPY website ./website
 # /reference/ 指向同镜像内 nginx 静态 Scalar 页（nginx.conf location /reference/）
 ARG VITE_API_REFERENCE_URL=/reference/api/
 ENV VITE_API_REFERENCE_URL=$VITE_API_REFERENCE_URL
+
+# VitePress 基础路径，开发环境通常为 /dev/，生产环境为 /prod/，构建时必须指定
+ARG VITE_BASE_PATH=/prod/
+ENV VITE_BASE_PATH=$VITE_BASE_PATH
+
 RUN pnpm docs:build
 
-# ===== 阶段2：运行 nginx =====
-FROM nginx:alpine AS runner
+# ===== 阶段2：运行 nginx（非 root）=====
+# 使用 nginxinc/nginx-unprivileged 官方维护的便捷镜像，开筱即用非 root 运行
+FROM nginxinc/nginx-unprivileged:alpine AS runner
 
 # VitePress 产物（含 reference/index.html）
 COPY --from=builder /app/website/dist /usr/share/nginx/html
@@ -40,7 +46,7 @@ COPY ${OPENAPI_JSON_PATH} /usr/share/nginx/html/reference/api/openapi.json
 # nginx 配置
 COPY website/nginx.prod.conf /etc/nginx/conf.d/default.conf
 
-EXPOSE 80
+EXPOSE 8080
 
 HEALTHCHECK --interval=10s --timeout=5s --start-period=10s --retries=5 \
-    CMD wget -qO- http://127.0.0.1/ || exit 1
+    CMD wget -qO- http://127.0.0.1:8080/ || exit 1
