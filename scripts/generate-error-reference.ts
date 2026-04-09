@@ -8,7 +8,7 @@
  *
  * 原理：
  *   导入所有异常模块，触发 @RegisterException 装饰器完成注册，
- *   再从 ErrorRegistry 读取全量元数据，生成 docs/03-reference/error-reference.md。
+ *   再从 ErrorRegistry 读取全量元数据，生成 docs/04-reference/error-reference.md。
  *
  * 该文件是**生成产物**，修改后会被下次执行覆盖。
  * 若需要自定义内容，请在对应的异常类上补充 hint / causes 字段。
@@ -27,7 +27,7 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const OUTPUT_PATH = resolve(__dirname, '../docs/03-reference/error-reference.md');
+const OUTPUT_PATH = resolve(__dirname, '../docs/04-reference/error-reference.md');
 
 // ─── HTTP 状态码段标题 ────────────────────────────────────────────────────────
 
@@ -126,7 +126,7 @@ function generate(): void {
     writeFileSync(OUTPUT_PATH, output, 'utf-8');
 
     console.log(
-        `[generate-error-reference] ✅ 已生成 docs/03-reference/error-reference.md（共 ${all.length} 个错误码）`
+        `[generate-error-reference] ✅ 已生成 docs/04-reference/error-reference.md（共 ${all.length} 个错误码）`
     );
 }
 
