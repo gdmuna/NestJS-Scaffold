@@ -2,19 +2,19 @@
 title: AI 文档操作手册
 inherits: AGENTS.md
 status: active
-version: "0.7.1"
-last-updated: 2026-04-06
+version: "0.7.4"
+last-updated: 2026-04-09
 category: meta
 related:
   - docs/STANDARD.md
   - docs/README.md
-  - docs/02-architecture/STANDARD.md
-  - docs/02-architecture/project-architecture-overview.md
-  - docs/02-architecture/request-pipeline.md
-  - docs/02-architecture/auth-module.md
-  - docs/02-architecture/database.md
-  - docs/02-architecture/observability.md
-  - docs/02-architecture/cicd-deployment.md
+  - docs/03-architecture/STANDARD.md
+  - docs/03-architecture/project-architecture-overview.md
+  - docs/03-architecture/request-pipeline.md
+  - docs/03-architecture/auth-module.md
+  - docs/03-architecture/database.md
+  - docs/03-architecture/observability.md
+  - docs/03-architecture/cicd-deployment.md
 ---
 
 # AI 文档操作手册
@@ -28,7 +28,7 @@ related:
 ### 1.1 创建或修改文档时
 
 1. 阅读 [docs/STANDARD.md](STANDARD.md) 确认写作规范与 frontmatter 要求
-2. 检查目标文档所在目录的 `STANDARD.md`（如 [02-architecture/STANDARD.md](02-architecture/STANDARD.md)），获取领域专项约束
+2. 检查目标文档所在目录的 `STANDARD.md`（如 [03-architecture/STANDARD.md](03-architecture/STANDARD.md)），获取领域专项约束
 3. 编写/修改内容
 4. 确保 frontmatter 完整：`inherits`、`related`、`status`、`version`、`last-updated` 字段均已正确填写
 5. 同步更新 [docs/README.md](README.md) 索引（如新增/删除文档）
@@ -49,13 +49,13 @@ related:
 
 | 代码变更类型 | 必须同步更新 |
 |------------|------------|
-| 新增/删除模块、修改模块职责 | [project-architecture-overview.md](02-architecture/project-architecture-overview.md) |
-| 修改全局中间件/守卫/拦截器的顺序或行为 | [request-pipeline.md](02-architecture/request-pipeline.md) |
+| 新增/删除模块、修改模块职责 | [project-architecture-overview.md](03-architecture/project-architecture-overview.md) |
+| 修改全局中间件/守卫/拦截器的顺序或行为 | [request-pipeline.md](03-architecture/request-pipeline.md) |
 | 修改 DTO 接口契约、响应格式 | Swagger 注解（内联于代码） |
-| 修改可观测性常量（慢请求/慢查询阈值等） | [observability.md](02-architecture/observability.md) |
-| 修改 JWT / Cookie / bcrypt 配置 | [auth-module.md](02-architecture/auth-module.md) |
-| 修改连接池参数、Prisma schema | [database.md](02-architecture/database.md) |
-| 新增/删除 CI/CD workflow 或 Docker 构建步骤 | [cicd-deployment.md](02-architecture/cicd-deployment.md) |
+| 修改可观测性常量（慢请求/慢查询阈值等） | [observability.md](03-architecture/observability.md) |
+| 修改 JWT / Cookie / bcrypt 配置 | [auth-module.md](03-architecture/auth-module.md) |
+| 修改连接池参数、Prisma schema | [database.md](03-architecture/database.md) |
+| 新增/删除 CI/CD workflow 或 Docker 构建步骤 | [cicd-deployment.md](03-architecture/cicd-deployment.md) |
 | 变更 `package.json` scripts | `.github/copilot-instructions.md` 命令速查 |
 | 新增/删除文档文件 | [docs/README.md](README.md) 索引 |
 
@@ -70,18 +70,3 @@ related:
 1. 将所有 `status: active` 文档的 `version` 字段更新至新版本号
 2. 将不再适用的文档从 `active` 改为 `archived`
 3. 检查 `.github/copilot-instructions.md` 命令速查是否与当前 `package.json scripts` 保持一致
-
----
-
-## 引用
-
-- [AI 协助者操作手册](../AGENTS.md)
-- [Docs 设计规范与约束](STANDARD.md)
-- [文档索引](README.md)
-- [架构设计规范](02-architecture/STANDARD.md)
-- [项目架构全览](02-architecture/project-architecture-overview.md)
-- [请求处理链路](02-architecture/request-pipeline.md)
-- [认证模块](02-architecture/auth-module.md)
-- [数据库](02-architecture/database.md)
-- [可观测性](02-architecture/observability.md)
-- [CI/CD 部署](02-architecture/cicd-deployment.md)

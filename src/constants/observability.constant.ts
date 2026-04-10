@@ -33,12 +33,12 @@ export const SLOW_QUERY_THRESHOLD = {
  * 生产环境设置为实际文档站点地址，开发环境默认指向本地 VitePress。
  */
 export const ERROR_REFERENCE_URL =
-    process.env.ERROR_REFERENCE_URL || 'http://localhost:5173/03-reference/error-reference';
+    process.env.ERROR_REFERENCE_URL || 'http://localhost:5173/04-appendix/error-reference';
 
 const ObservabilityConfigValidateSchema = z
     .object({
         API_DOCS_BASE_URL: z.url().default('https://api.example.com/errors'),
-        ERROR_REFERENCE_URL: z.url().default('http://localhost:5173/03-reference/error-reference'),
+        ERROR_REFERENCE_URL: z.url().default('http://localhost:5173/04-appendix/error-reference'),
         LOG_LEVEL: z.preprocess(
             (v) => (v ? v : 'info'),
             z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal', 'silent'])

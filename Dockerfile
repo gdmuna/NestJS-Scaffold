@@ -48,7 +48,7 @@ EOF
 # ===== 运行阶段 =====
 FROM node:22.22-slim AS runner
 
-# 设置工作目录
+# 设置工作目录（提前设置，方便后续 chown）
 WORKDIR /app
 
 COPY .env.* ./
@@ -66,6 +66,11 @@ apt-get install -y openssl curl
 curl -sfS https://dotenvx.sh/install.sh | sh
 rm -rf /var/lib/apt/lists/*
 EOF
+
+# 切换到非 root 用户（node:22-slim 内置 node 用户 uid=1000）
+# chown 保证应用文件对 node 用户可读写
+RUN chown -R node:node /app
+USER node
 
 # 构建参数
 ARG APP_VERSION

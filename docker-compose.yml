@@ -1,4 +1,4 @@
-name: nestjs-demo-basic
+name: nestjs-scaffold
 version: '1.2'
 services:
   # ─────────────────── PostgreSQL ───────────────────
@@ -33,7 +33,7 @@ services:
       dockerfile: Dockerfile
       args:
         NODE_ENV: ${NODE_ENV:-development}
-        APP_NAME: ${APP_NAME:-nestjs-demo-basic}
+        APP_NAME: ${APP_NAME:-nestjs-scaffold}
         APP_VERSION: ${APP_VERSION:-latest}
     restart: unless-stopped
     depends_on:

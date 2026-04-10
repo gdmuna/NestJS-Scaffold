@@ -1,18 +1,19 @@
----
+﻿---
 title: Docs 设计规范与约束
 inherits: AGENTS.md
 status: active
-version: "0.5.3"
-last-updated: 2026-03-26
+version: "0.7.4"
+last-updated: 2026-04-09
 category: standard
 related:
   - AGENTS.md
   - docs/AGENTS.md
   - docs/01-guides/STANDARD.md
-  - docs/02-architecture/STANDARD.md
-  - docs/03-reference/STANDARD.md
-  - docs/04-planning/STANDARD.md
-  - docs/05-audits/STANDARD.md
+  - docs/02-harness/STANDARD.md
+  - docs/03-architecture/STANDARD.md
+  - docs/04-appendix/STANDARD.md
+  - docs/05-releases/STANDARD.md
+  - docs/06-audits/STANDARD.md
 ---
 
 # Docs 设计规范与约束
@@ -40,16 +41,8 @@ related:
 - 每篇文档只回答一个核心问题。需要两段无关说明时，拆成两篇
 - 目录层级不超过两级（`docs/分类/文件.md`），不建立三级嵌套
 
-**违规示例**：创建 `docs/02-architecture/designs/middleware/` 三级目录只为存一个文件
-**正确做法**：`docs/02-architecture/middleware-design.md`
-
-### YAGNI 补充
-
-- 不创建"未来可能需要"的空目录或模板文件
-- 不为未发生的决策预写文档
-- 当某个分类的文档被全部删除/移走后，删除该空目录
-
-**唯一例外**：子目录 `STANDARD.md` 是架构设计阶段的产物，即使目录暂无业务文档也保留，因为它定义了该分类的写作约束（类比代码中的 interface——先定义契约，再填充实现）。
+**违规示例**：创建 `docs/03-architecture/designs/middleware/` 三级目录只为存一个文件
+**正确做法**：`docs/03-architecture/middleware-design.md`
 
 ---
 
@@ -90,13 +83,15 @@ docs/
 │
 ├── 01-guides/             # category: guide
 │   └── STANDARD.md
-├── 02-architecture/       # category: architecture
+├── 02-harness/            # category: harness
 │   └── STANDARD.md
-├── 03-reference/          # category: reference
+├── 03-architecture/       # category: architecture
 │   └── STANDARD.md
-├── 04-planning/           # category: planning
+├── 04-appendix/          # category: reference
 │   └── STANDARD.md
-└── 05-audits/             # category: audit
+├── 05-releases/           # category: release
+│   └── STANDARD.md
+└── 06-audits/             # category: audit
     └── STANDARD.md
 ```
 
@@ -115,10 +110,11 @@ docs/
 | 目录 | category 值 | 回答的核心问题 | 示例 |
 |------|-------------|---------------|------|
 | `01-guides/` | `guide` | "怎么做？" | 贡献者指南、工具使用教程 |
-| `02-architecture/` | `architecture` | "系统是什么样的？" | 架构全景、模块设计 |
-| `03-reference/` | `reference` | "接口/签名是什么？" | API 参考文档 |
-| `04-planning/` | `planning` | "接下来做什么？" | 路线图、版本规划 |
-| `05-audits/` | `audit` | "现在质量如何？" | 生产就绪度评审 |
+| `02-harness/` | `harness` | "Harness Engineering 是什么？" | Harness Engineering 理念与实现 |
+| `03-architecture/` | `architecture` | "系统是什么样的？" | 架构全景、模块设计 |
+| `04-appendix/` | `reference` | "接口/签名是什么？" | API 参考文档 |
+| `05-releases/` | `release` | "内容变了什么？" | 发布说明 |
+| `06-audits/` | `audit` | "现在质量如何？" | 生产就绪度评审 |
 
 **元文档**（基础设施性质，不属于任何内容子目录）：
 
@@ -164,7 +160,7 @@ version: "0.5.3"
 last-updated: 2026-03-26
 category: architecture
 related:                          # 相关文档路径（相对项目根）
-  - docs/02-architecture/project-architecture-overview.md
+  - docs/03-architecture/project-architecture-overview.md
 overrides:                        # 覆盖父规范的规则（可选）
   - docs/STANDARD.md#yagni-补充
 ---
@@ -179,7 +175,7 @@ overrides:                        # 覆盖父规范的规则（可选）
 | `status` | 是 | `active`=当前有效；`draft`=编写中不可依赖；`archived`=仅供历史参考 |
 | `version` | 是 | 该文档描述/适用的项目版本 |
 | `last-updated` | 是 | ISO 日期 |
-| `category` | 是 | 文档分类，完整值域见 §3 分类定义（内容文档：`guide`/`architecture`/`reference`/`planning`/`audit`；元文档：`standard`/`meta`/`index`） |
+| `category` | 是 | 文档分类，完整值域见 §3 分类定义（内容文档：`guide`/`harness`/`architecture`/`reference`/`release`/`audit`；元文档：`standard`/`meta`/`index`） |
 | `related` | 否 | 相关文档路径（相对项目根），显式声明文档间依赖关系 |
 | `overrides` | 否 | 显式禁用父规范的某条规则，值为父文档路径 + Markdown 标题锚点 |
 
@@ -188,7 +184,7 @@ overrides:                        # 覆盖父规范的规则（可选）
 - 子文档默认继承父文档的**所有**规则
 - 不需要重复父文档已定义的内容
 - 如需禁用某条父规则，在 `overrides` 中声明该规则的锚点
-- 继承链示例：`AGENTS.md` → `docs/STANDARD.md` → `docs/02-architecture/STANDARD.md` → 具体文档
+- 继承链示例：`AGENTS.md` → `docs/STANDARD.md` → `docs/03-architecture/STANDARD.md` → 具体文档
 
 ### `status` 状态转换规则
 
@@ -200,24 +196,9 @@ overrides:                        # 覆盖父规范的规则（可选）
 
 ## 6. 引用规范
 
-`## 引用` 区域是**文档级反向索引**：当某个文件被删除或移动时，在所有文档的 `## 引用` 区域搜索该路径，即可找出需要同步更新的文档。这与 frontmatter `related` 字段用途不同——`related` 是 AI 上下文加载的语义声明，`## 引用` 是面向人类的链接反查辅助。
+文档中的链接均使用 `[显示文本](路径)` 格式，路径相对于当前文件位置（确保 GitHub 渲染可点击），不使用 `[text][id]` 引用链接格式。
 
-所有文档必须在末尾维护此区域，列出正文中出现的**所有链接**（内部文档路径 + 外部 URL）：
-
-```markdown
-## 引用
-
-- [AI 协助者操作手册](../AGENTS.md)
-- [Docs 设计规范与约束](STANDARD.md)
-- [项目架构全览](02-architecture/project-architecture-overview.md)
-```
-
-规则：
-- 正文和引用区域均使用 `[显示文本](路径)` 格式，不使用 `[text][id]` 引用链接格式
-- 链接路径相对于当前文件位置（确保 GitHub 渲染可点击）
-- 同一目标文件的多个锚点变体合并为一条，只写基础路径（反向查引是文件粒度，锚点由搜索自动覆盖）
-- 显示文本使用目标文档的标题或可读描述
-- `docs/README.md` 作为导航索引豁免本要求，其 `## 引用` 只列非索引性的元依赖
+同一目标文件的多个锚点变体合并使用基础路径引用；显示文本使用目标文档的标题或可读描述。
 
 ---
 
@@ -265,10 +246,11 @@ overrides:                        # 覆盖父规范的规则（可选）
 | 文件                                                         | 管辖范围                  |
 | ---------------------------------------------------------- | --------------------- |
 | [01-guides/STANDARD.md](01-guides/STANDARD.md)             | 指南写作约束                |
-| [02-architecture/STANDARD.md](02-architecture/STANDARD.md) | 架构约束、模块依赖规则、架构子文档格式标准 |
-| [03-reference/STANDARD.md](03-reference/STANDARD.md)       | 参考文档格式标准              |
-| [04-planning/STANDARD.md](04-planning/STANDARD.md)         | 规划文档约束                |
-| [05-audits/STANDARD.md](05-audits/STANDARD.md)             | 审计文档约束                |
+| [02-harness/STANDARD.md](02-harness/STANDARD.md)           | Harness Engineering 写作约束              |
+| [03-architecture/STANDARD.md](03-architecture/STANDARD.md) | 架构约束、模块依赖规则、架构子文档格式标准 |
+| [04-appendix/STANDARD.md](04-appendix/STANDARD.md)       | 参考文档格式标准              |
+| [05-releases/STANDARD.md](05-releases/STANDARD.md)         | 发布说明约束                |
+| [06-audits/STANDARD.md](06-audits/STANDARD.md)             | 审计文档约束                |
 
 ---
 
@@ -296,7 +278,7 @@ overrides:                        # 覆盖父规范的规则（可选）
 ### 面向现在
 
 - 描述系统当前状态，不夹杂"计划中"或"将来会"的描述
-- 规划类内容专门放在 `04-planning/`
+- 规划类内容专门放在 `05-releases/`
 
 ### 图示选型
 
@@ -328,17 +310,4 @@ overrides:                        # 覆盖父规范的规则（可选）
 - [ ] 未与其他文档内容重复（DRY）
 - [ ] 文件名符合命名规范
 - [ ] `docs/README.md` 索引已同步更新
-- [ ] 文档末尾有 `## 引用` 区域，列出正文中出现的所有链接（内部文档路径 + 外部 URL），同一文件合并为一条
 - [ ] 如有覆盖父规则，已在 `overrides` 中声明
-
----
-
-## 引用
-
-- [AI 协助者操作手册](../AGENTS.md)
-- [AI 文档操作手册](AGENTS.md)
-- [架构设计规范](02-architecture/STANDARD.md)
-- [指南写作规范](01-guides/STANDARD.md)
-- [参考文档规范](03-reference/STANDARD.md)
-- [规划文档规范](04-planning/STANDARD.md)
-- [审计文档规范](05-audits/STANDARD.md)

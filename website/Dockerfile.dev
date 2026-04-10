@@ -18,6 +18,8 @@ RUN echo 'shamefully-hoist=true' >> .npmrc && pnpm install --frozen-lockfile --i
 
 # 复制文档内容和构建脚本
 COPY tsconfig.json ./
+COPY CHANGELOG.md ./
+COPY .git ./.git
 COPY src ./src
 COPY docs ./docs
 COPY scripts ./scripts
@@ -28,18 +30,22 @@ COPY website ./website
 # 示例：docker build --build-arg VITE_API_REFERENCE_URL=https://xxx.apifox.cn/...
 ARG VITE_API_REFERENCE_URL=https://3f45oonrvv.apifox.cn
 ENV VITE_API_REFERENCE_URL=$VITE_API_REFERENCE_URL
+
+# VitePress 基础路径，开发环境通常为 /dev/，生产环境为 /prod/，构建时必须指定
+ARG VITE_BASE_PATH=/dev/
+ENV VITE_BASE_PATH=$VITE_BASE_PATH
+
 RUN pnpm docs:build
 
-# ===== 阶段2：运行 nginx =====
-FROM nginx:alpine AS runner
+# ===== 阶段2：运行 nginx（非 root）=====
+# 使用 nginxinc/nginx-unprivileged 官方维护的便捷镜像，开筱即用非 root 运行
+FROM nginxinc/nginx-unprivileged:alpine AS runner
 
-# VitePress 产物（不含 /reference/ Scalar 页）
 COPY --from=builder /app/website/dist /usr/share/nginx/html
 
-# nginx 配置（无 /reference/ location）
 COPY website/nginx.dev.conf /etc/nginx/conf.d/default.conf
 
-EXPOSE 80
+EXPOSE 8080
 
 HEALTHCHECK --interval=10s --timeout=5s --start-period=10s --retries=5 \
-    CMD wget -qO- http://127.0.0.1/ || exit 1
+    CMD wget -qO- http://127.0.0.1:8080/dev || exit 1

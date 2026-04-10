@@ -13,6 +13,8 @@ RUN echo 'shamefully-hoist=true' >> .npmrc && pnpm install --frozen-lockfile --i
 
 # 复制文档内容和构建脚本
 COPY tsconfig.json ./
+COPY CHANGELOG.md ./
+COPY .git ./.git
 COPY src ./src
 COPY docs ./docs
 COPY scripts ./scripts
@@ -20,18 +22,24 @@ COPY website ./website
 
 # 生成错误码参考文档 + 构建 VitePress
 # /reference/ 指向同镜像内 nginx 静态 Scalar 页（nginx.conf location /reference/）
-ARG VITE_API_REFERENCE_URL=/reference/api/
+ARG VITE_API_REFERENCE_URL=/api-reference/
 ENV VITE_API_REFERENCE_URL=$VITE_API_REFERENCE_URL
+
+# VitePress 基础路径，开发环境通常为 /dev/，生产环境为 /prod/，构建时必须指定
+ARG VITE_BASE_PATH=/prod/
+ENV VITE_BASE_PATH=$VITE_BASE_PATH
+
 RUN pnpm docs:build
 
-# ===== 阶段2：运行 nginx =====
-FROM nginx:alpine AS runner
+# ===== 阶段2：运行 nginx（非 root）=====
+# 使用 nginxinc/nginx-unprivileged 官方维护的便捷镜像，开筱即用非 root 运行
+FROM nginxinc/nginx-unprivileged:alpine AS runner
 
 # VitePress 产物（含 reference/index.html）
 COPY --from=builder /app/website/dist /usr/share/nginx/html
 
 # Scalar API Reference 页
-COPY --from=builder /app/website/api-reference/index.html /usr/share/nginx/html/reference/api/index.html
+COPY --from=builder /app/website/api-reference/index.html /usr/share/nginx/html/api-reference/index.html
 
 # openapi.json（本地构建前先运行 pnpm docs:gen-openapi；CI 通过 --build-arg 覆盖路径）
 ARG OPENAPI_JSON_PATH=website/api-reference/openapi.json
@@ -40,7 +48,7 @@ COPY ${OPENAPI_JSON_PATH} /usr/share/nginx/html/reference/api/openapi.json
 # nginx 配置
 COPY website/nginx.prod.conf /etc/nginx/conf.d/default.conf
 
-EXPOSE 80
+EXPOSE 8080
 
 HEALTHCHECK --interval=10s --timeout=5s --start-period=10s --retries=5 \
-    CMD wget -qO- http://127.0.0.1/ || exit 1
+    CMD wget -qO- http://127.0.0.1:8080/prod || exit 1

@@ -5,6 +5,89 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 版本遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.7.4] - 2026-04-09
+
+### ✨ 新功能 / 改进
+
+#### 项目重命名
+
+- **`chore`**：项目正式更名为 **NestJS Scaffold**（原名 NestJS Demo Basic）
+  - `package.json` `name` 由 `nestjs-demo-basic` 改为 `nestjs-scaffold`
+  - `docker-compose.yml` compose project name 及 `APP_NAME` 默认值同步更新
+  - `src/main.ts` Swagger 标题、figlet 启动 Banner 同步更新
+  - 全局文档中所有展示名称同步替换
+
+#### 文档站全面重构
+
+- **`docs`**：文档目录编号重整，所有原有目录上移一级，腾出前置位给入门文档：
+  - `02-architecture/` → `03-architecture/`
+  - `03-reference/` → `04-reference/`
+  - `04-planning/` → `05-releases/`（目录职责同步调整为"发布文档"）
+  - `05-audits/` → `06-audits/`
+- **`docs`**：新增 `docs/00-getting-started/`（introduction、philosophy、quick-start）
+- **`docs`**：新增 `docs/02-harness/`（overview、feedback、feedforward、STANDARD）— Harness Engineering 专项文档区
+- **`docs`**：新增 `docs/index.md`（VitePress 首页）、`docs/changelog.md`、`docs/public/`（站点静态资源）
+- **`docs`**：新增 `docs/01-guides/`（development-workflow、docker-deployment、environment-setup、testing，原有 contributing.md 同步更新）
+- **`docs`**：删除 `docs/03-reference/api-reference.md`（内容整合至 `04-reference/`），删除 `04-planning/STANDARD.md` 和 `roadmap.md`
+- **`docs`**：全局将中文"驾驭工程"替换为英文"Harness Engineering"
+- **`docs`**：`docs/03-architecture/` 三份文档（exception-system、route-decorator、openapi-enrichment）去除"规划期"视角，全面对齐实现现状
+- **`docs`**：`README.md` 重写，新增功能特性、Harness Engineering 介绍、目录结构速览
+
+#### 容器安全
+
+- **`feat(dockerfile)`**：后端容器改为非 root 用户运行
+  - 新增 `RUN chown -R node:node /app` 和 `USER node`，使用 `node:22-slim` 内置的 node 用户（uid=1000）
+  - 遵循最小权限原则，符合容器安全最佳实践
+
+#### VitePress 站点升级
+
+- **`chore(website)`**：新增 `@mdit/plugin-tasklist` 实现任务列表渲染
+- **`chore(website)`**：侧边栏新增 Harness Engineering、Getting Started 等新节；更新导航项文案
+- **`chore(website)`**：Dockerfile.dev/prod、nginx.dev/prod.conf 对齐最新配置
+
+#### 文档站路由与导航重构（后续增补）
+
+- **`docs(vitepress)`**：新增 `rewrites` 配置，将编号目录路径映射为语义化 URL，文件路径不变：
+  - `00-getting-started/:page` / `01-guides/:page` → `/guide/:page`
+  - `02-harness/:page` / `03-architecture/:page` / `04-reference/:page` → `/reference/:page`
+  - `05-releases/:page` → `/reference/:page`
+- **`docs(vitepress)`**：侧边栏拆分为 `/guide/` 与 `/reference/` 两个独立分区；nav 条目重命名（"指南"→"上手"，"参考"→"深入"），新增 `activeMatch` 属性，避免落地页 404 的同时保持整段路径高亮
+- **`docs(vitepress)`**：`srcExclude` 新增 `**/STANDARD.md`、`**/AGENTS.md`，修复 rewrites 后多个子目录同名文件映射至相同路由导致 MiniSearch 重复 ID 报错；`ignoreDeadLinks` 由 `true` 改为精确正则，仅忽略 localhost 链接
+- **`assets(docs)`**：新增 hero logo 图片（`logo-default.png`、`logo-default-2x-cut.webp`、`logo-shadowed-cut.png`）
+- **`style(vitepress)`**：hero 图片响应式尺寸（`< 640px`：192px；`≥ 640px`：256px；`≥ 960px`：500px）
+- **`docs(home)`**：hero 图片切换为 `logo-shadowed-cut.png`；`text` 字段精简；`actions` 新增"什么是 NestJS Scaffold？"入口；GitHub 链接改为 `_blank` 外链
+- **`docs`**：新增 `docs/00-getting-started/about.md`（Maintainers + 致谢合并页，路由 `/guide/about`）
+- **`docs`**：更新日志文档迁移为 `docs/04-reference/CHANGELOG.md`，通过 `@include` 导入根目录 `CHANGELOG.md`；删除原 `docs/changelog.md`
+
+### 🔧 构建 / 工具链
+
+- **`build`**：`pnpm update -r` 升级 minor 依赖
+  - `@dotenvx/dotenvx-ops`: `^0.37.4` → `^0.37.8`
+  - `@nestjs/config`: `^4.0.3` → `^4.0.4`
+  - `@nestjs/swagger`: `^11.2.6` → `^11.2.7`
+  - `@prisma/adapter-pg`、`@prisma/client`、`prisma`: `^7.6.0` → `^7.7.0`
+  - `@nestjs/cli`: `^11.0.17` → `^11.0.19`
+  - `@typescript-eslint/eslint-plugin`、`parser`: `^8.58.0` → `^8.58.1`
+- **`chore`**：`AGENTS.md` 版本号更新至 0.7.4，删除 YAGNI / 防御性编程章节，新增 `pnpm format` 验证步骤
+- **`fix(scripts)`**：`scripts/generate-error-reference.ts` 输出路径更新（`03-reference` → `04-reference`）
+- **`fix`**：`src/constants/observability.constant.ts` `ERROR_REFERENCE_URL` 默认值更新（`03-reference` → `04-reference`）
+
+### 🐛 修复（后续增补）
+
+- **`fix(docker)`**：`Dockerfile.dev` / `Dockerfile.prod` 补加 `COPY CHANGELOG.md ./`，修复 `@include` 导入在生产镜像构建时因文件缺失导致内容为空的问题
+- **`fix(docker)`**：更新 `VITE_API_REFERENCE_URL` 默认值及 nginx 路由路径（`/reference/api/` → `/api-reference/`），对齐实际部署结构
+- **`fix(docs)`**：修复 `docs/04-reference/external-resources.md` 重复节标题
+- **`docs(readme)`**：补全文档站访问链接（main / dev 分支）；移除 README 中与文档站重复的快速开始、常用命令、依赖章节
+
+### 📁 文档重构（后续增补）
+
+- **`refactor(docs)`**：`docs/04-reference/` 目录重命名为 `docs/04-appendix/`，与目录实际定位（附录）一致
+  - 同步更新全部引用：`website/.vitepress/config.ts` rewrites 规则、`scripts/generate-error-reference.ts` 输出路径、`src/constants/observability.constant.ts` `ERROR_REFERENCE_URL` 默认值、`docs/README.md`、`docs/STANDARD.md`、`AGENTS.md`、`docs/04-appendix/STANDARD.md` 自引用
+- **`docs(harness)`**：`docs/02-harness/overview.md` 末尾新增 `:::warning` 说明块，诚实披露 Harness Engineering 当前实现局限（架构依赖检查尚未强制执行、推理型 AI 代码审查 Agent 未实现、突变测试等高级机制暂缺）
+- **`docs`**：`README.md` 与 `docs/00-getting-started/introduction.md` 新增“尚未发布首个稳定大版本”说明块，明确告知项目尚未发布 `1.0.0`（首个 Major 版本升级），接口契约在此之前不保证向后兼容，建议锁定至特定 commit 或 tag 而非直接跟踪 `main` 分支
+
+---
+
 ## [0.7.3] - 2026-04-07
 
 ### ✨ 新功能 / 改进
@@ -68,12 +151,12 @@
 
 - **`fix(scripts)`**：修复 `scripts/validate-release-version.cjs` 版本前缀提取正则由 `release-X.Y` 改为 `release/X.Y` 格式，消除版本验证始终抛出异常的问题
 
-- **`fix(docs)`**：修复 `docs/04-planning/pr-0.7.0.md` frontmatter `head: dev` 与 VitePress 保留字段冲突导致 `head.find is not a function` 错误，将字段重命名为 `branch: dev`
+- **`fix(docs)`**：修复 `docs/05-releases/pr-0.7.0.md` frontmatter `head: dev` 与 VitePress 保留字段冲突导致 `head.find is not a function` 错误，将字段重命名为 `branch: dev`
 
 ### 📚 文档
 
 - **`docs`**：所有架构文档同步至 v0.7.1，完全对齐 v0.7.0 + v0.7.1 实现
-  - 所有 `docs/02-architecture/` 文档升至 v0.7.1，frontmatter 和内容完全对齐实现
+  - 所有 `docs/03-architecture/` 文档升至 v0.7.1，frontmatter 和内容完全对齐实现
   - **auth-module.md**：修复 Mermaid 中 TokenService JWT 算法表示（RS256 → ES256）
   - **project-architecture-overview.md**：更新技术栈版本（Node.js ≥22、PostgreSQL ≥18）、Mermaid 控制器引用（ErrorCatalogController → ExceptionCatalogController）、Header 版本字段
   - **contributing.md**：更新分支命名约定（`release-X.Y` → `release/X.Y`）；重写 CI/CD 触发条件表（移除已删除工作流 `ci-cd-dev.yaml`、`release-snapshot.yaml` 等；修正触发规范）

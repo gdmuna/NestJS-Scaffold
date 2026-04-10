@@ -88,7 +88,7 @@ NestJS 后端基线模板 API，提供认证系统、健康检查和错误目录
 `.trim();
 
     const docConfig = new DocumentBuilder()
-        .setTitle('Nestjs-Demo-Basic API')
+        .setTitle('NestJS Scaffold API')
         .setDescription(apiDescription)
         .setVersion(APP_VERSION)
         .addBearerAuth({ type: 'http', scheme: 'bearer', bearerFormat: 'JWT' }, 'accessToken')
@@ -153,7 +153,7 @@ bootstrap()
         // 等待 pino-pretty Worker 线程完成日志输出
         await new Promise((resolve) => setTimeout(resolve, 200));
 
-        const startupBanner = await figlet.text('NestJS-Demo-Basic', {
+        const startupBanner = await figlet.text('NestJS-Scaffold', {
             font: 'Slant',
             horizontalLayout: 'fitted',
         });
