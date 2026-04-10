@@ -31,8 +31,8 @@ NestJS 后端开发基线模板，提供认证系统、分层架构、AOP 切面
 
 | 文档站 | 说明 |
 |--------|------|
-| [文档站（main 分支）](https://docs.nestjs-scaffold.prod.apps.gdmuna.com) | 跟踪 `main` 分支（最新稳定版） |
-| [文档站（dev 分支）](http://docs.nestjs-scaffold.dev.apps.gdmuna.com) | 跟踪 `dev` 分支（最新开发版） |
+| [文档站（main 分支）](https://docs.nestjs-scaffold.prod.maiturin.com) | 跟踪 `main` 分支（最新稳定版） |
+| [文档站（dev 分支）](https://docs.nestjs-scaffold.dev.maiturin.com) | 跟踪 `dev` 分支（最新开发版） |
 
 ## 文档
 
