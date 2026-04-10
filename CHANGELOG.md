@@ -45,6 +45,20 @@
 - **`chore(website)`**：侧边栏新增 Harness Engineering、Getting Started 等新节；更新导航项文案
 - **`chore(website)`**：Dockerfile.dev/prod、nginx.dev/prod.conf 对齐最新配置
 
+#### 文档站路由与导航重构（后续增补）
+
+- **`docs(vitepress)`**：新增 `rewrites` 配置，将编号目录路径映射为语义化 URL，文件路径不变：
+  - `00-getting-started/:page` / `01-guides/:page` → `/guide/:page`
+  - `02-harness/:page` / `03-architecture/:page` / `04-reference/:page` → `/reference/:page`
+  - `05-releases/:page` → `/reference/:page`
+- **`docs(vitepress)`**：侧边栏拆分为 `/guide/` 与 `/reference/` 两个独立分区；nav 条目重命名（"指南"→"上手"，"参考"→"深入"），新增 `activeMatch` 属性，避免落地页 404 的同时保持整段路径高亮
+- **`docs(vitepress)`**：`srcExclude` 新增 `**/STANDARD.md`、`**/AGENTS.md`，修复 rewrites 后多个子目录同名文件映射至相同路由导致 MiniSearch 重复 ID 报错；`ignoreDeadLinks` 由 `true` 改为精确正则，仅忽略 localhost 链接
+- **`assets(docs)`**：新增 hero logo 图片（`logo-default.png`、`logo-default-2x-cut.webp`、`logo-shadowed-cut.png`）
+- **`style(vitepress)`**：hero 图片响应式尺寸（`< 640px`：192px；`≥ 640px`：256px；`≥ 960px`：500px）
+- **`docs(home)`**：hero 图片切换为 `logo-shadowed-cut.png`；`text` 字段精简；`actions` 新增"什么是 NestJS Scaffold？"入口；GitHub 链接改为 `_blank` 外链
+- **`docs`**：新增 `docs/00-getting-started/about.md`（Maintainers + 致谢合并页，路由 `/guide/about`）
+- **`docs`**：更新日志文档迁移为 `docs/04-reference/CHANGELOG.md`，通过 `@include` 导入根目录 `CHANGELOG.md`；删除原 `docs/changelog.md`
+
 ### 🔧 构建 / 工具链
 
 - **`build`**：`pnpm update -r` 升级 minor 依赖
@@ -57,6 +71,13 @@
 - **`chore`**：`AGENTS.md` 版本号更新至 0.7.4，删除 YAGNI / 防御性编程章节，新增 `pnpm format` 验证步骤
 - **`fix(scripts)`**：`scripts/generate-error-reference.ts` 输出路径更新（`03-reference` → `04-reference`）
 - **`fix`**：`src/constants/observability.constant.ts` `ERROR_REFERENCE_URL` 默认值更新（`03-reference` → `04-reference`）
+
+### 🐛 修复（后续增补）
+
+- **`fix(docker)`**：`Dockerfile.dev` / `Dockerfile.prod` 补加 `COPY CHANGELOG.md ./`，修复 `@include` 导入在生产镜像构建时因文件缺失导致内容为空的问题
+- **`fix(docker)`**：更新 `VITE_API_REFERENCE_URL` 默认值及 nginx 路由路径（`/reference/api/` → `/api-reference/`），对齐实际部署结构
+- **`fix(docs)`**：修复 `docs/04-reference/external-resources.md` 重复节标题
+- **`docs(readme)`**：补全文档站访问链接（main / dev 分支）；移除 README 中与文档站重复的快速开始、常用命令、依赖章节
 
 ---
 

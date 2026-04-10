@@ -10,7 +10,7 @@ date: 2026-04-09
 
 ## 概述
 
-本 PR 将 `release/0.7` 分支合并至 `main`，发布 v0.7.4 版本。主要内容：项目正式更名为 **NestJS Scaffold**；文档站全面重构（目录重整、新增入门文档区与 Harness Engineering 文档区）；后端容器改为非 root 用户运行；依赖 minor 版本升级。
+本 PR 将 `release/0.7` 分支合并至 `main`，发布 v0.7.4 版本。主要内容：项目正式更名为 **NestJS Scaffold**；文档站全面重构（目录重整、新增入门文档区与 Harness Engineering 文档区）；文档站路由重写为语义化 URL（/guide/ / /reference/）、侧边栏双分区重构；新增关于本项目页；hero 图片及首页更新；后端容器改为非 root 用户运行；依赖 minor 版本升级；修复 Docker 构建 CHANGELOG 缺失及 API reference 路径问题。
 
 ## 变更内容
 
@@ -67,6 +67,23 @@ date: 2026-04-09
 - **侧边栏重构**（`chore(website)`）— 新增 Harness Engineering（02-harness）、Getting Started（00-getting-started）等新节；移除已废弃的 `02-architecture` 配置
 - **导航文案更新**（`chore(website)`）— `驾驭工程` → `Harness Engineering`，`什么是驾驭工程` → `什么是 Harness Engineering`
 - **站点标题更新**（`chore(website)`）— `NestJS Demo Basic` → `NestJS Scaffold`
+
+#### 文档站路由与导航重构（后续增补）
+
+- **VitePress 语义化路由**（`docs(vitepress)`）— 新增 `rewrites` 配置，将编号目录路径映射为可读 URL，文件路径不变：
+  - `/guide/*`：涵盖 `00-getting-started/`、`01-guides/`、`04-reference/` 附录类内容
+  - `/reference/*`：涵盖 `02-harness/`、`03-architecture/` 深度文档
+- **侧边栏双分区重构**（`docs(vitepress)`）— 上手（/guide/）/ 深入（/reference/）两个独立侧边栏，nav 条目重命名并添加 `activeMatch`，解决落地页 404 与高亮缺失问题
+- **搜索索引修复**（`docs(vitepress)`）— `srcExclude` 排除 `STANDARD.md` / `AGENTS.md`，修复 rewrites 后同名文件映射重复路由导致 MiniSearch 抛错
+- **Hero 品牌资产**（`assets(docs)`）— 新增三种规格 logo 图片（PNG / WebP）；`style.css` 添加响应式尺寸断点；首页 hero 更新图片源、精简文案、重组 actions 按钮
+- **关于本项目页**（`docs`）— 新增 `about.md`，合并 Maintainers 与致谢内容（路由 `/guide/about`）
+- **更新日志文档迁移**（`docs`）— `docs/changelog.md` → `docs/04-reference/CHANGELOG.md`，通过 `@include` 导入根目录 `CHANGELOG.md`
+
+### 🐛 修复（后续增补）
+
+- **`fix(docker)`**：Dockerfile.dev / prod 构建阶段补加 `COPY CHANGELOG.md ./`，修复生产镜像中 `@include` 内容为空的问题；API reference 路径统一更新（`/reference/api/` → `/api-reference/`）
+- **`fix(docs)`**：修复 `external-resources.md` 重复节标题
+- **`docs(readme)`**：补全文档站访问链接；精简 README，移除与文档站重复的章节
 
 ### 🔧 杂项 / 工程化
 
