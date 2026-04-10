@@ -39,7 +39,7 @@ docker run -d --name pg-dev -p 5432:5432 \
 ### 方式 B：git clone
 
 ```bash
-git clone https://github.com/gdmuna/nestjs-demo-basic.git my-project
+git clone https://github.com/gdmuna/NestJS-Scaffold.git my-project
 cd my-project
 ```
 

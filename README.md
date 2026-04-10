@@ -25,14 +25,14 @@ NestJS 后端开发基线模板，提供认证系统、分层架构、AOP 切面
 > 项目当前所有版本均为 `0.x`，处于积极开发阶段，尚未发布 `1.0.0`（即首个 Major 版本升级）。
 > 这意味着：接口契约、目录结构、配置项和 API 设计在版本间可能发生较大变动，不保证向后兼容。
 > 如果你将本项目用作其他项目的起点，建议锁定到特定 commit 或 tag，而非直接跟踪 `main` 分支。
-> 正式 v1.0.0 版本的发布计划请参见[文档站](https://docs.nestjs-scaffold.apps.gdmuna.com/main)。
+> 正式 v1.0.0 版本的发布计划请参见**文档站**
 
 ## 文档站
 
 | 文档站 | 说明 |
 |--------|------|
-| [文档站（main 分支）](https://docs.nestjs-scaffold.apps.gdmuna.com/main) | 跟踪 `main` 分支（最新稳定版） |
-| [文档站（dev 分支）](http://docs.nestjs-scaffold.apps.gdmuna.com/dev) | 跟踪 `dev` 分支（最新开发版） |
+| [文档站（main 分支）](https://docs.nestjs-scaffold.prod.apps.gdmuna.com) | 跟踪 `main` 分支（最新稳定版） |
+| [文档站（dev 分支）](http://docs.nestjs-scaffold.dev.apps.gdmuna.com) | 跟踪 `dev` 分支（最新开发版） |
 
 ## 文档
 
@@ -44,4 +44,6 @@ NestJS 后端开发基线模板，提供认证系统、分层架构、AOP 切面
 
 ## License
 
-MIT
+本项目为社区维护的开源模板，**与 NestJS 官方团队无关联**。
+
+项目基于 [MIT 许可证](https://github.com/gdmuna/NestJS-Scaffold/blob/main/LICENSE) 开源，可自由用于个人或商业项目。

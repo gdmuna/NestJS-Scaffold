@@ -148,16 +148,16 @@ export default defineConfig({
             },
         },
 
-        socialLinks: [{ icon: 'github', link: 'https://github.com/gdmuna/nestjs-demo-basic' }],
+        socialLinks: [{ icon: 'github', link: 'https://github.com/gdmuna/NestJS-Scaffold' }],
 
         footer: {
             message:
-                '基于 <a href="https://github.com/gdmuna/nestjs-demo-basic/blob/main/LICENSE">MIT 许可</a> 发布',
+                '基于 <a href="https://github.com/gdmuna/NestJS-Scaffold/blob/main/LICENSE">MIT 许可</a> 发布',
             copyright: `版权所有 © 2026-至今 <a href="https://github.com/gdmuna">GDMU-NA & GDMU-ACM</a>`,
         },
 
         editLink: {
-            pattern: 'https://github.com/gdmuna/nestjs-demo-basic/edit/main/docs/:path',
+            pattern: 'https://github.com/gdmuna/NestJS-Scaffold/edit/main/docs/:path',
             text: '在 GitHub 上编辑此页',
         },
 

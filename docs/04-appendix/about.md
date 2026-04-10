@@ -18,7 +18,7 @@ category: guide
 |------|------|---------|
 | 项目发起人 | [@Maiturin](https://github.com/Maiturin) | 架构设计、核心实现、文档体系 |
 
-欢迎通过 [GitHub Issues](https://github.com/gdmuna/nestjs-demo-basic/issues) 反馈问题，或阅读[贡献指南](/guide/contributing)参与共建。
+欢迎通过 [GitHub Issues](https://github.com/gdmuna/NestJS-Scaffold/issues) 反馈问题，或阅读[贡献指南](/guide/contributing)参与共建。
 
 ## 致谢
 
@@ -91,5 +91,5 @@ category: guide
 
 本项目为社区维护的开源模板，**与 NestJS 官方团队无关联**。
 
-项目基于 [MIT 许可证](https://github.com/gdmuna/nestjs-demo-basic/blob/main/LICENSE) 开源，可自由用于个人或商业项目。
+项目基于 [MIT 许可证](https://github.com/gdmuna/NestJS-Scaffold/blob/main/LICENSE) 开源，可自由用于个人或商业项目。
 
