@@ -13,6 +13,7 @@ RUN echo 'shamefully-hoist=true' >> .npmrc && pnpm install --frozen-lockfile --i
 
 # 复制文档内容和构建脚本
 COPY tsconfig.json ./
+COPY CHANGELOG.md ./
 COPY src ./src
 COPY docs ./docs
 COPY scripts ./scripts
@@ -20,7 +21,7 @@ COPY website ./website
 
 # 生成错误码参考文档 + 构建 VitePress
 # /reference/ 指向同镜像内 nginx 静态 Scalar 页（nginx.conf location /reference/）
-ARG VITE_API_REFERENCE_URL=/reference/api/
+ARG VITE_API_REFERENCE_URL=/api-reference/
 ENV VITE_API_REFERENCE_URL=$VITE_API_REFERENCE_URL
 
 # VitePress 基础路径，开发环境通常为 /dev/，生产环境为 /prod/，构建时必须指定
@@ -37,7 +38,7 @@ FROM nginxinc/nginx-unprivileged:alpine AS runner
 COPY --from=builder /app/website/dist /usr/share/nginx/html
 
 # Scalar API Reference 页
-COPY --from=builder /app/website/api-reference/index.html /usr/share/nginx/html/reference/api/index.html
+COPY --from=builder /app/website/api-reference/index.html /usr/share/nginx/html/api-reference/index.html
 
 # openapi.json（本地构建前先运行 pnpm docs:gen-openapi；CI 通过 --build-arg 覆盖路径）
 ARG OPENAPI_JSON_PATH=website/api-reference/openapi.json

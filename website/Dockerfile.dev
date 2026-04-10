@@ -18,6 +18,7 @@ RUN echo 'shamefully-hoist=true' >> .npmrc && pnpm install --frozen-lockfile --i
 
 # 复制文档内容和构建脚本
 COPY tsconfig.json ./
+COPY CHANGELOG.md ./
 COPY src ./src
 COPY docs ./docs
 COPY scripts ./scripts
