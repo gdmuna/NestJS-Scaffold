@@ -3,18 +3,23 @@ layout: home
 
 hero:
   name: NestJS Scaffold
-  text: NestJS 后端开发基线模板
+  text: 后端开发基线模板
   tagline: 认证系统、分层架构、CI 流水线、容器化部署、结构化日志，开箱即用
   image:
-    src: /img/logo-small.svg
+    src: /img/logo-shadowed-cut.png
     alt: NestJS
   actions:
     - theme: brand
-      text: 快速开始
-      link: /00-getting-started/quick-start
+      text: 什么是 NestJS Scaffold？
+      link: /guide/introduction
     - theme: alt
-      text: 项目简介
-      link: /00-getting-started/introduction
+      text: 快速开始
+      link: /guide/quick-start
+    - theme: alt
+      text: Github
+      link: https://github.com/gdmuna/NestJS-Scaffold
+      target: _blank
+      rel: "noopener noreferrer"
 
 features:
   - icon: 🔐
