@@ -13,89 +13,116 @@ export default defineConfig({
     // 缓存目录
     cacheDir: './.vitepress/cache',
 
-    // scope 外的链接（如 ../README.md、../../CHANGELOG.md）忽略
-    ignoreDeadLinks: true,
+    // 排除内部规范文件，避免 rewrites 后产生重复路由
+    srcExclude: ['**/STANDARD.md', '**/AGENTS.md', 'README.md'],
+
+    // 忽略所有 localhost 链接造成的死链
+    ignoreDeadLinks: [/^https?:\/\/localhost/],
 
     base: process.env.VITE_BASE_PATH || '/',
 
     cleanUrls: true,
 
+    head: [['link', { rel: 'icon', type: 'image/svg+xml', href: '/img/logo-small.svg' }]],
+
+    rewrites: {
+        '00-getting-started/:page': 'guide/:page',
+        '01-guides/:page': 'guide/:page',
+        '02-harness/:page': 'reference/:page',
+        '03-architecture/:page': 'reference/:page',
+        '04-reference/:page': 'guide/:page',
+        '05-releases/:page': 'guide/:page',
+    },
+
     themeConfig: {
+        logo: '/img/logo-small.svg',
         nav: [
             { text: '首页', link: '/' },
-            { text: '快速开始', link: '/00-getting-started/quick-start' },
+            { text: '上手', link: '/guide/introduction', activeMatch: '/guide/' },
             {
-                text: 'API Reference',
+                text: '深入',
+                link: '/reference/overview',
+                activeMatch: '/reference/',
+            },
+            {
+                text: 'API 参考文档',
                 // 本地开发默认指向 backend dev server；Dockerfile 构建时通过 ARG VITE_API_REFERENCE_URL 覆盖
                 link: process.env.VITE_API_REFERENCE_URL ?? 'http://localhost:3000/reference',
                 target: '_blank',
             },
         ],
 
-        sidebar: [
-            {
-                text: '开始',
-                items: [
-                    { text: '项目简介', link: '/00-getting-started/introduction' },
-                    { text: '核心理念', link: '/00-getting-started/philosophy' },
-                    { text: '快速上手', link: '/00-getting-started/quick-start' },
-                ],
-            },
-            {
-                text: '指南',
-                items: [
-                    { text: '环境搭建', link: '/01-guides/environment-setup' },
-                    { text: '开发工作流', link: '/01-guides/development-workflow' },
-                    { text: '测试指南', link: '/01-guides/testing' },
-                    { text: 'Docker 与部署', link: '/01-guides/docker-deployment' },
-                    { text: '贡献指南', link: '/01-guides/contributing' },
-                ],
-            },
-            {
-                text: 'Harness Engineering',
-                items: [
-                    { text: '什么是 Harness Engineering', link: '/02-harness/overview' },
-                    { text: '前置控制：引导层', link: '/02-harness/feedforward' },
-                    { text: '反馈控制：感知层', link: '/02-harness/feedback' },
-                ],
-            },
-            {
-                text: '架构设计',
-                items: [
-                    {
-                        text: '项目架构全览',
-                        link: '/03-architecture/project-architecture-overview',
-                    },
-                    { text: '认证模块', link: '/03-architecture/auth-module' },
-                    { text: '请求生命周期', link: '/03-architecture/request-pipeline' },
-                    { text: '数据库', link: '/03-architecture/database' },
-                    { text: '异常系统', link: '/03-architecture/exception-system' },
-                    { text: '可观测性', link: '/03-architecture/observability' },
-                    { text: 'OpenAPI 增强', link: '/03-architecture/openapi-enrichment' },
-                    { text: '路由装饰器', link: '/03-architecture/route-decorator' },
-                    { text: 'CI/CD 部署', link: '/03-architecture/cicd-deployment' },
-                ],
-            },
-            {
-                text: '参考',
-                items: [
-                    { text: '参考资源', link: '/04-reference/external-resources' },
-                    { text: '错误码参考', link: '/04-reference/error-reference' },
-                    { text: '更新日志', link: '/changelog' },
-                ],
-            },
-            {
-                text: '发布说明',
-                collapsed: true,
-                items: [
-                    { text: 'v0.7.3', link: '/05-releases/pr-0.7.3' },
-                    { text: 'v0.7.2', link: '/05-releases/pr-0.7.2' },
-                    { text: 'v0.7.1', link: '/05-releases/pr-0.7.1' },
-                    { text: 'v0.7.0', link: '/05-releases/pr-0.7.0' },
-                ],
-            },
-        ],
-
+        sidebar: {
+            '/guide/': [
+                {
+                    text: '概览',
+                    items: [
+                        { text: '项目简介', link: '/guide/introduction' },
+                        { text: '核心理念', link: '/guide/philosophy' },
+                        { text: '快速开始', link: '/guide/quick-start' },
+                    ],
+                },
+                {
+                    text: '指南',
+                    items: [
+                        { text: '环境搭建', link: '/guide/environment-setup' },
+                        { text: '开发工作流', link: '/guide/development-workflow' },
+                        { text: '测试指南', link: '/guide/testing' },
+                        { text: 'Docker 与部署', link: '/guide/docker-deployment' },
+                        { text: '贡献指南', link: '/guide/contributing' },
+                    ],
+                },
+                {
+                    text: '附录',
+                    items: [
+                        { text: '参考资源', link: '/guide/external-resources' },
+                        { text: '错误码参考', link: '/guide/error-reference' },
+                        { text: '更新日志', link: '/guide/CHANGELOG' },
+                        { text: '关于本项目', link: '/guide/about' },
+                        { text: '深入 →', link: '/reference/overview' },
+                    ],
+                },
+                {
+                    text: '发布说明',
+                    collapsed: true,
+                    items: [
+                        { text: 'v0.7.4', link: '/guide/pr-0.7.4' },
+                        { text: 'v0.7.3', link: '/guide/pr-0.7.3' },
+                        { text: 'v0.7.2', link: '/guide/pr-0.7.2' },
+                        { text: 'v0.7.1', link: '/guide/pr-0.7.1' },
+                        { text: 'v0.7.0', link: '/guide/pr-0.7.0' },
+                    ],
+                },
+            ],
+            '/reference/': [
+                {
+                    text: 'Harness Engineering',
+                    items: [
+                        { text: '什么是 Harness Engineering', link: '/reference/overview' },
+                        { text: '前置控制：引导层', link: '/reference/feedforward' },
+                        { text: '反馈控制：感知层', link: '/reference/feedback' },
+                    ],
+                },
+                {
+                    text: '架构设计',
+                    items: [
+                        {
+                            text: '项目架构全览',
+                            link: '/reference/project-architecture-overview',
+                        },
+                        { text: '认证模块', link: '/reference/auth-module' },
+                        { text: '请求生命周期', link: '/reference/request-pipeline' },
+                        { text: '数据库', link: '/reference/database' },
+                        { text: '异常系统', link: '/reference/exception-system' },
+                        { text: '可观测性', link: '/reference/observability' },
+                        { text: 'OpenAPI 增强', link: '/reference/openapi-enrichment' },
+                        { text: '路由装饰器', link: '/reference/route-decorator' },
+                        { text: 'CI/CD 部署', link: '/reference/cicd-deployment' },
+                    ],
+                },
+                { text: '← 上手', link: '/guide/introduction' },
+            ],
+        },
         // 内置本地全文搜索（替代 @easyops-cn/docusaurus-search-local）
         search: {
             provider: 'local',
