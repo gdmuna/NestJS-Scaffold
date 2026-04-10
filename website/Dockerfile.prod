@@ -14,6 +14,7 @@ RUN echo 'shamefully-hoist=true' >> .npmrc && pnpm install --frozen-lockfile --i
 # 复制文档内容和构建脚本
 COPY tsconfig.json ./
 COPY CHANGELOG.md ./
+COPY .git ./.git
 COPY src ./src
 COPY docs ./docs
 COPY scripts ./scripts
@@ -50,4 +51,4 @@ COPY website/nginx.prod.conf /etc/nginx/conf.d/default.conf
 EXPOSE 8080
 
 HEALTHCHECK --interval=10s --timeout=5s --start-period=10s --retries=5 \
-    CMD wget -qO- http://127.0.0.1:8080/ || exit 1
+    CMD wget -qO- http://127.0.0.1:8080/prod || exit 1
