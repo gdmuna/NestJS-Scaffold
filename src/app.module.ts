@@ -16,7 +16,7 @@ import { ExceptionCatalogModule, AuthModule } from '@/modules/index.js';
 
 import allConfig, { AllConfig } from '@/constants/index.js';
 
-import { DatabaseModule, AlsModule } from '@/infra/index.js';
+import { AlsModule, DatabaseModule, StorageModule } from '@/infra/index.js';
 
 import { Module, MiddlewareConsumer, NestModule, Global } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -83,6 +83,24 @@ import pino from 'pino';
                 };
             },
         }),
+        StorageModule.forRootAsync({
+            inject: [ConfigService],
+            useFactory: (configService: ConfigService<AllConfig, true>) => {
+                const storageConfig = configService.get('storage', { infer: true });
+                return {
+                    storageProvider: 's3',
+                    options: {
+                        endpoint: storageConfig.endpoint,
+                        region: storageConfig.region,
+                        accessKeyId: storageConfig.accessKeyId,
+                        secretAccessKey: storageConfig.secretAccessKey,
+                        forcePathStyle: storageConfig.forcePathStyle,
+                        bucketPublic: storageConfig.bucketPublic,
+                        bucketPrivate: storageConfig.bucketPrivate,
+                    },
+                };
+            },
+        }),
         AlsModule,
         DatabaseModule,
         ExceptionCatalogModule,
@@ -131,7 +149,7 @@ import pino from 'pino';
             useClass: ThrottlerExceptionFilter,
         },
     ],
-    exports: [AlsModule, DatabaseModule],
+    exports: [AlsModule, DatabaseModule, StorageModule],
 })
 export class AppModule implements NestModule {
     configure(consumer: MiddlewareConsumer) {

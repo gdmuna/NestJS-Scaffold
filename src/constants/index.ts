@@ -3,6 +3,7 @@ import { authConfig, AuthConfig } from './auth.constant.js';
 import { databaseConfig, DatabaseConfig } from './database.constant.js';
 import { httpConfig, HttpConfig } from './http.constant.js';
 import { observabilityConfig, ObservabilityConfig } from './observability.constant.js';
+import { storageConfig, StorageConfig } from './storage.constant.js';
 
 // 导出所有配置
 
@@ -12,6 +13,7 @@ export type AllConfig = {
     database: DatabaseConfig;
     http: HttpConfig;
     observability: ObservabilityConfig;
+    storage: StorageConfig;
 };
 
 export const allConfig = {
@@ -20,6 +22,7 @@ export const allConfig = {
     databaseConfig,
     httpConfig,
     observabilityConfig,
+    storageConfig,
 };
 
 export default [...Object.values(allConfig)];
@@ -29,3 +32,4 @@ export * from './auth.constant.js';
 export * from './database.constant.js';
 export * from './http.constant.js';
 export * from './observability.constant.js';
+export * from './storage.constant.js';
