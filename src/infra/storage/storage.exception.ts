@@ -93,7 +93,7 @@ export class StorageMultipartCompleteFailedException extends StorageException {}
     code: StorageExceptionCode.MULTIPART_ABORT_FAILED,
     statusCode: 500,
     message: '分片上传取消失败',
-    description: 'S3 AbortMultipartUpload 操作失败，临时分片可能未被清理，会持续计费',
+    description: 'S3 AbortMultipartUpload 操作失败，临时分片可能未被清理',
     retryable: true,
     logLevel: 'error',
     hint: '稍后重试或手动在 S3 控制台清理未完成的 Multipart Upload',

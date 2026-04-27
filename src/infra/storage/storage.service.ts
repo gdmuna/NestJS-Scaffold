@@ -8,6 +8,7 @@ import {
     StorageMultipartAbortFailedException,
 } from './storage.exception.js';
 import { S3_OPTIONS } from './storage.constant.js';
+import type { StorageModuleOptions } from './storage.interface.js';
 
 import { Logger } from '@/common/services/index.js';
 
@@ -215,15 +216,16 @@ export class StorageService {
 
     /**
      * 获取文件可读流（大文件/视频代理场景）
+     *
+     * 注意：AWS SDK v3 的 resp.Body 是 ChecksumStream（非标准 Readable，含循环引用），
+     * 通过 PassThrough 中继转换为标准 Node.js Readable，避免序列化循环引用错误。
      */
     async getObjectStream(bucket: BucketType | string, key: string): Promise<Readable> {
         const bucketName =
             bucket === 'public' || bucket === 'private' ? this.resolveBucket(bucket) : bucket;
+        let resp;
         try {
-            const resp = await this.s3Client.send(
-                new GetObjectCommand({ Bucket: bucketName, Key: key })
-            );
-            return resp.Body as unknown as Readable;
+            resp = await this.s3Client.send(new GetObjectCommand({ Bucket: bucketName, Key: key }));
         } catch (err: any) {
             if (err?.name === 'NoSuchKey') {
                 throw new StorageObjectNotFoundException({ cause: err });
@@ -231,6 +233,13 @@ export class StorageService {
             this.logger.error({ bucket: bucketName, key, err }, 'Object stream failed');
             throw new StorageDownloadFailedException({ cause: err });
         }
+        if (!resp.Body) {
+            throw new StorageDownloadFailedException();
+        }
+        const { PassThrough } = await import('stream');
+        const pass = new PassThrough();
+        (resp.Body as any).pipe(pass);
+        return pass;
     }
 
     /**
@@ -280,6 +289,26 @@ export class StorageService {
         } catch (err: any) {
             if (err?.name === 'NotFound' || err?.$metadata?.httpStatusCode === 404) {
                 return false;
+            }
+            throw new StorageDownloadFailedException({ cause: err });
+        }
+    }
+
+    /**
+     * 获取对象大小（字节），通过 HEAD 请求，不传输文件内容。
+     * 若对象不存在则抛出 StorageObjectNotFoundException。
+     */
+    async getObjectSize(bucket: BucketType | string, key: string): Promise<number> {
+        const bucketName =
+            bucket === 'public' || bucket === 'private' ? this.resolveBucket(bucket) : bucket;
+        try {
+            const resp = await this.s3Client.send(
+                new HeadObjectCommand({ Bucket: bucketName, Key: key })
+            );
+            return resp.ContentLength ?? 0;
+        } catch (err: any) {
+            if (err?.name === 'NotFound' || err?.$metadata?.httpStatusCode === 404) {
+                throw new StorageObjectNotFoundException({ cause: err });
             }
             throw new StorageDownloadFailedException({ cause: err });
         }
@@ -478,6 +507,3 @@ export class StorageService {
         }
     }
 }
-
-// 解决循环引用：在 Service 文件内本地引用类型
-import type { StorageModuleOptions } from './storage.interface.js';

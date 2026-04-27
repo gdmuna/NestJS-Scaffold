@@ -1,9 +1,11 @@
 import { S3_OPTIONS } from './storage.constant.js';
-import { StorageModuleOptions, StorageModuleAsyncOptions } from './storage.interface.js';
+import type { StorageModuleOptions, StorageModuleAsyncOptions } from './storage.interface.js';
 import { StorageService } from './storage.service.js';
 
-import { Module, DynamicModule, Provider } from '@nestjs/common';
+import { AllConfig } from '@/constants/index.js';
 
+import { ConfigService } from '@nestjs/config';
+import { Module, DynamicModule, Provider } from '@nestjs/common';
 import { S3Client } from '@aws-sdk/client-s3';
 
 @Module({
@@ -30,7 +32,7 @@ export class StorageModule {
             imports: options.imports || [],
             providers: [
                 StorageService,
-                ...this.createAsyncProvider(options),
+                ...this.createAsyncOptionsProvider(options),
                 this.createS3ClientProvider(),
             ],
             exports: [StorageService, S3Client, S3_OPTIONS],
@@ -40,23 +42,44 @@ export class StorageModule {
     private static createS3ClientProvider(): Provider {
         return {
             provide: S3Client,
-            useFactory: (opts: StorageModuleOptions) => {
-                if (!opts.options) return;
+            useFactory: (
+                opts: StorageModuleOptions | null,
+                configService: ConfigService<AllConfig, true> | null
+            ) => {
+                let options = opts?.options;
+                if (!options && configService) {
+                    const storageConfig = configService.get('storage', { infer: true });
+                    if (storageConfig) {
+                        options = {
+                            endpoint: storageConfig.endpoint,
+                            region: storageConfig.region,
+                            accessKeyId: storageConfig.accessKeyId,
+                            secretAccessKey: storageConfig.secretAccessKey,
+                            forcePathStyle: storageConfig.forcePathStyle,
+                            bucketPublic: storageConfig.bucketPublic,
+                            bucketPrivate: storageConfig.bucketPrivate,
+                        };
+                    }
+                }
+                if (!options) return;
                 return new S3Client({
-                    endpoint: opts.options.endpoint,
-                    region: opts.options.region || 'cn-east-1',
-                    forcePathStyle: opts.options.forcePathStyle || true,
+                    endpoint: options.endpoint,
+                    region: options.region || 'cn-east-1',
+                    forcePathStyle: options.forcePathStyle || true,
                     credentials: {
-                        accessKeyId: opts.options.accessKeyId,
-                        secretAccessKey: opts.options.secretAccessKey,
+                        accessKeyId: options.accessKeyId,
+                        secretAccessKey: options.secretAccessKey,
                     },
                 });
             },
-            inject: [S3_OPTIONS],
+            inject: [
+                { token: S3_OPTIONS, optional: true },
+                { token: ConfigService, optional: true },
+            ],
         };
     }
 
-    private static createAsyncProvider(options: StorageModuleAsyncOptions): Provider[] {
+    private static createAsyncOptionsProvider(options: StorageModuleAsyncOptions): Provider[] {
         const provider: Provider[] = [];
         if (options.useFactory) {
             provider.push({
@@ -64,19 +87,21 @@ export class StorageModule {
                 useFactory: options.useFactory,
                 inject: options.inject || [],
             });
-        } else if (options.useClass) {
-            provider.push({
-                provide: S3_OPTIONS,
-                useFactory: async (optionsFactory: any) => optionsFactory.createS3Options(),
-                inject: [options.useClass],
-            });
-        } else if (options.useExisting) {
-            provider.push({
-                provide: S3_OPTIONS,
-                useFactory: async (optionsFactory: any) => optionsFactory.createS3Options(),
-                inject: [options.useExisting],
-            });
         }
+        // else if (options.useClass) {
+        //     provider.push({
+        //         provide: S3_OPTIONS,
+        //         useFactory: async (optionsFactory: any) => optionsFactory.createS3Options(),
+        //         inject: [options.useClass],
+        //     });
+        // }
+        // else if (options.useExisting) {
+        //     provider.push({
+        //         provide: S3_OPTIONS,
+        //         useFactory: async (optionsFactory: any) => optionsFactory.createS3Options(),
+        //         inject: [options.useExisting],
+        //     });
+        // }
         return provider;
     }
 }
