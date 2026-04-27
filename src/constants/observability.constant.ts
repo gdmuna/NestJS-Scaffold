@@ -5,9 +5,15 @@ import { z } from 'zod';
 
 export const API_DOCS_BASE_URL = process.env.API_DOCS_BASE_URL || 'https://api.example.com/errors';
 
-export const LOG_LEVEL =
-    process.env.LOG_LEVEL ||
-    ('info' as 'trace' | 'debug' | 'info' | 'warn' | 'error' | 'fatal' | 'silent' | undefined);
+export const LOG_LEVEL = (process.env.LOG_LEVEL || 'info') as
+    | 'trace'
+    | 'debug'
+    | 'info'
+    | 'warn'
+    | 'error'
+    | 'fatal'
+    | 'silent'
+    | undefined;
 
 export const SLOW_REQUEST_THRESHOLD = {
     get warn() {
