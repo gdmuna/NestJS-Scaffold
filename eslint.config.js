@@ -10,7 +10,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 export default [
     {
         // 排除第三方构建产物，避免 ESLint 扫描 VitePress 缓存和输出目录
-        ignores: ['website/.vitepress/cache/', 'website/dist/'],
+        ignores: ['website/.vitepress/cache/', 'website/dist/', 'dist/'],
     },
     {
         files: ['src/**/*.ts', 'test/**/*.ts'],
@@ -21,6 +21,7 @@ export default [
                 ...globals.es2024,
                 ...globals.jest,
                 NodeJS: 'readonly',
+                Express: 'readonly',
             },
             parserOptions: {
                 project: './tsconfig.json',
