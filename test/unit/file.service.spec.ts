@@ -7,6 +7,7 @@ import {
     FileInvalidDomainException,
     FileInvalidTypeException,
     FileRecordNotFoundException,
+    FileStagingNotFoundException,
 } from '@/modules/file/file.exception.js';
 import type { StorageService } from '@/infra/storage/storage.service.js';
 import { Readable } from 'stream';
@@ -17,6 +18,7 @@ const mockStorageService: jest.Mocked<
     Pick<
         StorageService,
         | 'getUploadUrl'
+        | 'getUploadUrlCAS'
         | 'getDownloadUrl'
         | 'getPublicUrl'
         | 'putObject'
@@ -27,13 +29,15 @@ const mockStorageService: jest.Mocked<
         | 'deleteObjects'
         | 'objectExists'
         | 'copyObject'
+        | 'promoteFromStaging'
         | 'initMultipartUpload'
         | 'getResumablePartUrls'
         | 'completeMultipartUpload'
         | 'abortMultipartUpload'
-    >
+    > & { stagingBucket: string }
 > = {
     getUploadUrl: jest.fn(),
+    getUploadUrlCAS: jest.fn(),
     getDownloadUrl: jest.fn(),
     getPublicUrl: jest.fn(),
     putObject: jest.fn(),
@@ -44,10 +48,18 @@ const mockStorageService: jest.Mocked<
     deleteObjects: jest.fn(),
     objectExists: jest.fn(),
     copyObject: jest.fn(),
+    promoteFromStaging: jest.fn(),
     initMultipartUpload: jest.fn(),
     getResumablePartUrls: jest.fn(),
     completeMultipartUpload: jest.fn(),
     abortMultipartUpload: jest.fn(),
+    stagingBucket: 'nestjs-scaffold-staging',
+};
+
+const mockCacheManager = {
+    get: jest.fn(),
+    set: jest.fn(),
+    del: jest.fn(),
 };
 
 const mockFileRepo: jest.Mocked<
@@ -72,7 +84,8 @@ function buildService() {
         mockFileRepo as unknown as FileRepository,
         mockAvatarStrategy,
         mockDocumentStrategy,
-        mockVideoStrategy
+        mockVideoStrategy,
+        mockCacheManager as any
     );
 }
 
@@ -100,6 +113,9 @@ describe('FileService', () => {
 
     beforeEach(() => {
         jest.clearAllMocks();
+        mockCacheManager.set.mockResolvedValue(undefined);
+        mockCacheManager.del.mockResolvedValue(undefined);
+        mockCacheManager.get.mockResolvedValue(undefined);
         service = buildService();
     });
 
@@ -169,12 +185,39 @@ describe('FileService', () => {
                 } as any)
             ).rejects.toBeInstanceOf(FileInvalidTypeException);
         });
+
+        it('should use CAS flow when sha256 is provided', async () => {
+            const sha256 = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
+            mockStorageService.getUploadUrlCAS.mockResolvedValue(
+                'https://s3.example.com/staging/presign'
+            );
+            mockFileRepo.create.mockResolvedValue(makeFileRecord({ id: 'file_cas', sha256 }));
+
+            const result = await service.getPresignedUploadUrl('u_1', {
+                domain: 'avatar',
+                contentType: 'image/png',
+                filename: 'photo.png',
+                sha256,
+            } as any);
+
+            expect(result).toEqual({
+                fileId: 'file_cas',
+                uploadUrl: 'https://s3.example.com/staging/presign',
+            });
+            expect(mockStorageService.getUploadUrlCAS).toHaveBeenCalledWith(sha256, 'image/png');
+            expect(mockStorageService.getUploadUrl).not.toHaveBeenCalled();
+            expect(mockCacheManager.set).toHaveBeenCalledWith(
+                `cas:pending:file_cas`,
+                sha256,
+                expect.any(Number)
+            );
+        });
     });
 
     // ── confirmUpload ─────────────────────────────────────────────────────────
 
     describe('confirmUpload', () => {
-        it('should activate file record', async () => {
+        it('should activate file record (non-CAS)', async () => {
             const record = makeFileRecord({ status: 'PENDING' });
             const activeRecord = makeFileRecord({ status: 'ACTIVE' });
             mockFileRepo.findById.mockResolvedValue(record);
@@ -184,6 +227,41 @@ describe('FileService', () => {
 
             expect(result.status).toBe('ACTIVE');
             expect(mockFileRepo.updateStatus).toHaveBeenCalledWith('file_1', 'ACTIVE');
+        });
+
+        it('should promote from staging and activate for CAS flow', async () => {
+            const sha256 = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
+            const record = makeFileRecord({ status: 'PENDING', sha256 });
+            const activeRecord = makeFileRecord({ status: 'ACTIVE', sha256 });
+            mockFileRepo.findById.mockResolvedValue(record);
+            mockStorageService.objectExists.mockResolvedValue(true);
+            mockStorageService.promoteFromStaging.mockResolvedValue(undefined);
+            mockFileRepo.updateStatus.mockResolvedValue(activeRecord);
+
+            const result = await service.confirmUpload({ fileId: 'file_1' } as any);
+
+            expect(mockStorageService.objectExists).toHaveBeenCalledWith(
+                'nestjs-scaffold-staging',
+                sha256
+            );
+            expect(mockStorageService.promoteFromStaging).toHaveBeenCalledWith(
+                sha256,
+                record.bucket,
+                record.key
+            );
+            expect(mockCacheManager.del).toHaveBeenCalledWith('cas:pending:file_1');
+            expect(result.status).toBe('ACTIVE');
+        });
+
+        it('should throw FileStagingNotFoundException when staging object missing', async () => {
+            const sha256 = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
+            mockFileRepo.findById.mockResolvedValue(makeFileRecord({ sha256 }));
+            mockStorageService.objectExists.mockResolvedValue(false);
+
+            await expect(service.confirmUpload({ fileId: 'file_1' } as any)).rejects.toBeInstanceOf(
+                FileStagingNotFoundException
+            );
+            expect(mockStorageService.promoteFromStaging).not.toHaveBeenCalled();
         });
 
         it('should throw FileRecordNotFoundException for unknown fileId', async () => {
