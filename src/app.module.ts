@@ -16,7 +16,7 @@ import { AuthModule, ExceptionCatalogModule, FileModule } from '@/modules/index.
 
 import allConfig, { AllConfig } from '@/constants/index.js';
 
-import { AlsModule, DatabaseModule, StorageModule } from '@/infra/index.js';
+import { AlsModule, DatabaseModule, KvsModule, StorageModule } from '@/infra/index.js';
 
 import { Module, MiddlewareConsumer, NestModule, Global } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -96,6 +96,7 @@ import pino from 'pino';
                         forcePathStyle: storageConfig.forcePathStyle,
                         bucketPublic: storageConfig.bucketPublic,
                         bucketPrivate: storageConfig.bucketPrivate,
+                        bucketStaging: storageConfig.bucketStaging,
                     },
                 };
             },
@@ -105,6 +106,7 @@ import pino from 'pino';
         DatabaseModule,
         ExceptionCatalogModule,
         FileModule,
+        KvsModule,
     ],
     controllers: [AppController, TestController],
     providers: [
@@ -149,7 +151,7 @@ import pino from 'pino';
             useClass: ThrottlerExceptionFilter,
         },
     ],
-    exports: [AlsModule, DatabaseModule, StorageModule],
+    exports: [AlsModule, DatabaseModule, KvsModule, StorageModule],
 })
 export class AppModule implements NestModule {
     configure(consumer: MiddlewareConsumer) {
