@@ -11,6 +11,7 @@ export interface S3ProviderOptions {
     forcePathStyle?: boolean;
     bucketPublic: string;
     bucketPrivate: string;
+    bucketStaging: string;
     publicBaseUrl?: string;
 }
 

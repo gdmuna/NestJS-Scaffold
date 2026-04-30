@@ -58,6 +58,7 @@ export class StorageModule {
                             forcePathStyle: storageConfig.forcePathStyle,
                             bucketPublic: storageConfig.bucketPublic,
                             bucketPrivate: storageConfig.bucketPrivate,
+                            bucketStaging: storageConfig.bucketStaging,
                         };
                     }
                 }
@@ -70,6 +71,10 @@ export class StorageModule {
                         accessKeyId: options.accessKeyId,
                         secretAccessKey: options.secretAccessKey,
                     },
+                    // 禁止 SDK 自动为所有 PutObject 附加 CRC32 checksum，
+                    // 避免预签名 URL 携带无效的 AAAAAA== 占位值。
+                    // CAS 路径（getUploadUrlCAS）会显式指定 SHA256，不受影响。
+                    requestChecksumCalculation: 'WHEN_REQUIRED',
                 });
             },
             inject: [

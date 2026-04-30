@@ -27,6 +27,7 @@ import {
     CompleteMultipartUploadCommand,
     AbortMultipartUploadCommand,
     ListPartsCommand,
+    ChecksumAlgorithm,
     type CompletedPart,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
@@ -79,6 +80,11 @@ export class StorageService {
         return type === 'public' ? this.opts.options.bucketPublic : this.opts.options.bucketPrivate;
     }
 
+    /** 内容寻址暂存桶名 */
+    get stagingBucket(): string {
+        return this.opts.options.bucketStaging;
+    }
+
     /**
      * 拼接公开文件的直接访问 URL（不带签名，依赖 publicBaseUrl 或 endpoint）
      */
@@ -110,6 +116,56 @@ export class StorageService {
             new PutObjectCommand({ Bucket: bucketName, Key: key, ContentType: contentType }),
             { expiresIn }
         );
+    }
+
+    /**
+     * 生成带 SHA-256 完整性校验的上传预签名 URL（内容寻址存储 CAS）
+     *
+     * 上传目标为 staging 暂存桶，key = sha256Hex。
+     * S3/MinIO 会在收到对象后自动验证 checksum：若内容与声明的 sha256 不符，
+     * 直接返回 400，客户端上传失败，无需服务端二次计算。
+     *
+     * @param sha256Hex  文件内容的 SHA-256 hex 字符串（64位小写十六进制）
+     * @param contentType  MIME 类型
+     * @param expiresIn  有效期（秒），默认 3600
+     */
+    async getUploadUrlCAS(
+        sha256Hex: string,
+        contentType: string,
+        expiresIn = DEFAULT_PRESIGN_EXPIRES
+    ): Promise<string> {
+        // S3 ChecksumSHA256 要求 base64 编码
+        const sha256Base64 = Buffer.from(sha256Hex, 'hex').toString('base64');
+        return getSignedUrl(
+            this.s3Client,
+            new PutObjectCommand({
+                Bucket: this.stagingBucket,
+                Key: sha256Hex,
+                ContentType: contentType,
+                ChecksumAlgorithm: ChecksumAlgorithm.SHA256,
+                ChecksumSHA256: sha256Base64,
+            }),
+            { expiresIn }
+        );
+    }
+
+    /**
+     * 将 staging 桶中的 CAS 对象移动到目标桶（copy + delete）
+     * @param sha256Hex  CAS key（即 staging 桶中的对象键）
+     * @param destBucket  目标桶类型或实际桶名
+     * @param destKey  目标对象键
+     */
+    async promoteFromStaging(
+        sha256Hex: string,
+        destBucket: BucketType | string,
+        destKey: string
+    ): Promise<void> {
+        const dstBucket =
+            destBucket === 'public' || destBucket === 'private'
+                ? this.resolveBucket(destBucket)
+                : destBucket;
+        await this.copyObject(this.stagingBucket, sha256Hex, dstBucket, destKey);
+        await this.deleteObject(this.stagingBucket, sha256Hex);
     }
 
     /**
