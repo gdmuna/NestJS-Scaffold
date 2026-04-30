@@ -10,6 +10,14 @@ export const PresignUploadDtoSchema = z
             .string()
             .meta({ title: '文件类型，必须是合法的MIME类型', example: 'image/png' }),
         filename: z.string().meta({ title: '原始文件名', example: 'profile.png' }),
+        sha256: z
+            .string()
+            .regex(/^[0-9a-f]{64}$/, 'sha256 必须是 64 位小写十六进制字符串')
+            .optional()
+            .meta({
+                title: '文件内容的 SHA-256（可选，启用内容寻址存储与完整性校验）',
+                example: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+            }),
     })
     .meta({ description: '获取文件上传预签名 URL 的请求 Dto' });
 

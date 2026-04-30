@@ -1,6 +1,14 @@
-import { Injectable } from '@nestjs/common';
-import { StorageService } from '@/infra/storage/storage.service.js';
-import type { BucketType, UploadPart } from '@/infra/storage/storage.service.js';
+import { FileRepository } from './file.repository.js';
+import { AvatarStrategy } from './strategies/avatar.strategy.js';
+import { VideoStrategy } from './strategies/video.strategy.js';
+import { DocumentStrategy } from './strategies/document.strategy.js';
+import {
+    FileInvalidDomainException,
+    FileRecordNotFoundException,
+    FileStagingNotFoundException,
+} from './file.exception.js';
+import { PROXY_SIZE_THRESHOLD } from './file.constant.js';
+import type { FileDomain, UploadStrategy } from './file.interface.js';
 import {
     PresignUploadDto,
     MultipartInitDto,
@@ -13,14 +21,14 @@ import {
     ServerUploadDto,
     ConfirmUploadDto,
 } from './file.dto.js';
-import { FileRepository } from './file.repository.js';
-import { AvatarStrategy } from './strategies/avatar.strategy.js';
-import { VideoStrategy } from './strategies/video.strategy.js';
-import { DocumentStrategy } from './strategies/document.strategy.js';
-import { FileInvalidDomainException, FileRecordNotFoundException } from './file.exception.js';
-import { PROXY_SIZE_THRESHOLD } from './file.constant.js';
-import type { FileDomain, UploadStrategy } from './file.interface.js';
+
+import { StorageService } from '@/infra/storage/storage.service.js';
+import type { BucketType, UploadPart } from '@/infra/storage/storage.service.js';
+
 import type { FileModel } from '@root/prisma/generated/models/File.js';
+
+import { Injectable, Inject } from '@nestjs/common';
+import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager';
 import type { Readable } from 'stream';
 
 @Injectable()
@@ -32,7 +40,8 @@ export class FileService {
         private readonly fileRepo: FileRepository,
         private readonly avatarStrategy: AvatarStrategy,
         private readonly documentStrategy: DocumentStrategy,
-        private readonly videoStrategy: VideoStrategy
+        private readonly videoStrategy: VideoStrategy,
+        @Inject(CACHE_MANAGER) private readonly cacheManager: Cache
     ) {
         this.strategies = {
             avatar: this.avatarStrategy,
@@ -47,6 +56,11 @@ export class FileService {
      * 获取上传预签名 URL（客户端直传）
      * 在数据库中创建状态为 PENDING 的文件记录，返回预签名 URL 和 fileId。
      * 客户端上传完成后需调用 confirmUpload 激活文件记录。
+     *
+     * 当 dto.sha256 存在时，启用 CAS 流程：
+     *   - 上传目标为 staging 桶，key = sha256Hex
+     *   - 预签名 URL 含 SHA-256 checksum 强制校验（S3 层实现）
+     *   - 实际目标桶/key（strategy 决定）存储在 DB 记录，confirmUpload 时搬运
      */
     async getPresignedUploadUrl(
         userId: string,
@@ -56,7 +70,15 @@ export class FileService {
         strategy.validate(dto);
         const key = strategy.resolveKey(userId, dto.filename);
         const bucket = strategy.getBucket() as BucketType;
-        const uploadUrl = await this.storageService.getUploadUrl(bucket, key, dto.contentType);
+
+        let uploadUrl: string;
+        if (dto.sha256) {
+            // CAS 流程：上传到 staging 桶，启用 S3 checksum 校验
+            uploadUrl = await this.storageService.getUploadUrlCAS(dto.sha256, dto.contentType);
+        } else {
+            uploadUrl = await this.storageService.getUploadUrl(bucket, key, dto.contentType);
+        }
+
         const record = await this.fileRepo.create({
             userId,
             domain: dto.domain,
@@ -64,15 +86,55 @@ export class FileService {
             key,
             filename: dto.filename,
             contentType: dto.contentType,
+            sha256: dto.sha256,
         });
+
+        if (dto.sha256) {
+            // 将期望的 sha256 存入 KVS，供 confirmUpload 快速查验，TTL = 1小时 + 5分钟容错
+            await this.cacheManager.set(
+                `cas:pending:${record.id}`,
+                dto.sha256,
+                (3600 + 300) * 1000
+            );
+        }
+
         return { fileId: record.id, uploadUrl };
     }
 
     /**
      * 确认客户端上传已完成，将文件记录从 PENDING 激活为 ACTIVE
+     *
+     * 当文件记录含 sha256 时（CAS 流程）：
+     *   1. 验证 staging 桶中对应对象存在（可导出客户端上传失败或 URL 已过期）
+     *   2. 将对象从 staging 搞运到最终目标桶
+     *   3. 清理 KVS 中的临时字段
      */
     async confirmUpload(dto: ConfirmUploadDto): Promise<FileModel> {
         const record = await this.requireFile(dto.fileId);
+
+        if (record.sha256) {
+            // 验证 staging 桶中对应对象是否存在
+            const stagingExists = await this.storageService.objectExists(
+                this.storageService.stagingBucket,
+                record.sha256
+            );
+            if (!stagingExists) {
+                throw new FileStagingNotFoundException({
+                    message: `文件 ${dto.fileId} 的暂存对象未找到，请确认已完成上传`,
+                });
+            }
+
+            // 将对象从 staging 移动到最终目标桶
+            await this.storageService.promoteFromStaging(
+                record.sha256,
+                record.bucket as BucketType,
+                record.key
+            );
+
+            // 清理 KVS 临时条目
+            await this.cacheManager.del(`cas:pending:${record.id}`);
+        }
+
         return this.fileRepo.updateStatus(record.id, 'ACTIVE');
     }
 

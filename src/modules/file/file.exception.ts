@@ -4,6 +4,8 @@ export const FileExceptionCode = {
     INVALID_FILE_TYPE: 'FILE_INVALID_TYPE',
     INVALID_DOMAIN: 'FILE_INVALID_DOMAIN',
     RECORD_NOT_FOUND: 'FILE_RECORD_NOT_FOUND',
+    STAGING_NOT_FOUND: 'FILE_STAGING_NOT_FOUND',
+    INTEGRITY_VIOLATION: 'FILE_INTEGRITY_VIOLATION',
 } as const;
 
 export abstract class FileException extends ClientException {}
@@ -43,3 +45,32 @@ export class FileInvalidDomainException extends FileException {}
     hint: '确认 fileId 正确，或重新上传文件',
 })
 export class FileRecordNotFoundException extends FileException {}
+
+@RegisterException({
+    code: FileExceptionCode.STAGING_NOT_FOUND,
+    statusCode: 409,
+    message: '暂存对象未找到',
+    description:
+        '调用 confirmUpload 时，对应的文件尚未上传到暂存桶，或上传已被存储层拒绝（checksum 不符）',
+    retryable: false,
+    logLevel: 'warn',
+    causes: [
+        '客户端尚未完成上传',
+        '上传内容与声明的 sha256 不符导致被 S3 拒绝',
+        '预签名 URL 已过期',
+    ],
+    hint: '确认文件已成功上传后再调用 confirmUpload，如预签名 URL 已过期请重新申请',
+})
+export class FileStagingNotFoundException extends FileException {}
+
+@RegisterException({
+    code: FileExceptionCode.INTEGRITY_VIOLATION,
+    statusCode: 422,
+    message: '文件完整性校验失败',
+    description: '服务端检测到上传文件的 sha256 与客户端声明不一致，拒绝激活该文件记录',
+    retryable: false,
+    logLevel: 'warn',
+    causes: ['上传过程中文件内容被篡改', '客户端计算 sha256 时使用了错误的算法或编码'],
+    hint: '重新计算文件 sha256（小写十六进制）后重新上传',
+})
+export class FileIntegrityViolationException extends FileException {}

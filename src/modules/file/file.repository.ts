@@ -13,6 +13,7 @@ export interface CreateFileInput {
     filename: string;
     contentType: string;
     uploadId?: string;
+    sha256?: string;
 }
 
 @Injectable()
@@ -25,6 +26,13 @@ export class FileRepository {
 
     findById(id: string): Promise<FileModel | null> {
         return this.db.file.findUnique({ where: { id } });
+    }
+
+    findBySha256(sha256: string): Promise<FileModel | null> {
+        return this.db.file.findFirst({
+            where: { sha256, status: 'ACTIVE' },
+            orderBy: { createdAt: 'desc' },
+        });
     }
 
     updateStatus(id: string, status: FileStatus, uploadId?: string | null): Promise<FileModel> {
