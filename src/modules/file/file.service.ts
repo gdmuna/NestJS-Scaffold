@@ -41,7 +41,7 @@ export class FileService {
         private readonly avatarStrategy: AvatarStrategy,
         private readonly documentStrategy: DocumentStrategy,
         private readonly videoStrategy: VideoStrategy,
-        @Inject(CACHE_MANAGER) private readonly cacheManager: Cache
+        private readonly cacheManager: Cache
     ) {
         this.strategies = {
             avatar: this.avatarStrategy,

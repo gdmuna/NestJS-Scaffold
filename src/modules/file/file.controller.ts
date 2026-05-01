@@ -88,7 +88,7 @@ export class FileController {
     // ─── 服务端直接操作 ────────────────────────────────────────────────────────
 
     @Post('server-upload')
-    @UseInterceptors(FileInterceptor('file'))
+    @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 5 * 1024 * 1024 } })) // 限制文件大小 ≤5MB
     @ApiRoute({
         auth: 'required',
         summary: '服务端直接上传文件（小文件 ≤5MB）',

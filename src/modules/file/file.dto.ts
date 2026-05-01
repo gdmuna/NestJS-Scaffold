@@ -139,6 +139,10 @@ export const ServerUploadDtoSchema = z
     .object({
         domain: z.string().meta({ title: '文件领域', example: 'avatar' }),
         filename: z.string().meta({ title: '原始文件名', example: 'photo.jpg' }),
+        file: z
+            .file()
+            .optional()
+            .meta({ title: '上传的文件', description: '通过 multipart/form-data 上传，大小 ≤5MB' }),
     })
     .meta({ description: '服务端直接上传文件（小文件 ≤5MB）的请求 Dto' });
 
