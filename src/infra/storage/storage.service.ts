@@ -13,7 +13,7 @@ import type { StorageModuleOptions } from './storage.interface.js';
 import { Logger } from '@/common/services/index.js';
 
 import { Inject, Injectable } from '@nestjs/common';
-import { Readable } from 'stream';
+import { Readable, PassThrough } from 'stream';
 
 import {
     S3Client,
@@ -292,7 +292,6 @@ export class StorageService {
         if (!resp.Body) {
             throw new StorageDownloadFailedException();
         }
-        const { PassThrough } = await import('stream');
         const pass = new PassThrough();
         (resp.Body as any).pipe(pass);
         return pass;
