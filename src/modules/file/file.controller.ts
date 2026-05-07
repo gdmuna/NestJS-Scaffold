@@ -29,9 +29,9 @@ import {
     Res,
     StreamableFile,
     UseInterceptors,
+    UploadedFile,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { UploadedFile } from '@nestjs/common';
 
 import type { Request, Response } from 'express';
 
@@ -121,20 +121,20 @@ export class FileController {
         return new StreamableFile(data as any);
     }
 
-    @Head(':fileId/exists')
-    @ApiRoute({
-        auth: 'required',
-        summary: '检查文件是否存在于对象存储',
-        description: '使用 HEAD 请求检查指定文件是否存在，文件存在返回 200，不存在返回 404。',
-    })
-    async fileExists(@Param('fileId') fileId: string): Promise<void> {
-        const exists = await this.fileService.fileExists(fileId);
-        if (!exists) {
-            throw new NotFoundException(`文件 ${fileId} 不存在于对象存储`);
-        }
-    }
+    // @Head(':fileId/exists')
+    // @ApiRoute({
+    //     auth: 'required',
+    //     summary: '检查文件是否存在于对象存储',
+    //     description: '使用 HEAD 请求检查指定文件是否存在，文件存在返回 200，不存在返回 404。',
+    // })
+    // async fileExists(@Param('fileId') fileId: string): Promise<void> {
+    //     const exists = await this.fileService.fileExists(fileId);
+    //     if (!exists) {
+    //         throw new NotFoundException(`文件 ${fileId} 不存在于对象存储`);
+    //     }
+    // }
 
-    @Delete('objects')
+    @Delete()
     @HttpCode(HttpStatus.NO_CONTENT)
     @ApiRoute({
         auth: 'required',
@@ -146,15 +146,15 @@ export class FileController {
         return this.fileService.deleteFiles(dto);
     }
 
-    @Post('copy')
-    @ApiRoute({
-        auth: 'required',
-        summary: '服务端复制文件',
-        description: '在服务端复制文件到指定领域，不消耗客户端带宽。返回新文件的 fileId。',
-    })
-    copyFile(@Body() dto: CopyFileDto, @Req() req: Request) {
-        return this.fileService.copyFile(req.jwtClaim!.sub, dto);
-    }
+    // @Post('copy')
+    // @ApiRoute({
+    //     auth: 'required',
+    //     summary: '服务端复制文件',
+    //     description: '在服务端复制文件到指定领域，不消耗客户端带宽。返回新文件的 fileId。',
+    // })
+    // copyFile(@Body() dto: CopyFileDto, @Req() req: Request) {
+    //     return this.fileService.copyFile(req.jwtClaim!.sub, dto);
+    // }
 
     // ─── 分片上传 ──────────────────────────────────────────────────────────────
 
@@ -168,15 +168,15 @@ export class FileController {
         return this.fileService.initMultipartUpload(req.jwtClaim!.sub, dto);
     }
 
-    @Post('multipart/resume')
-    @ApiRoute({
-        auth: 'required',
-        summary: '获取断点续传分片预签名 URL',
-        description: '为未完成的分片重新生成预签名 URL，支持断点续传场景。',
-    })
-    resumeMultipart(@Body() dto: ResumablePartUrlsDto) {
-        return this.fileService.resumeMultipartUpload(dto);
-    }
+    // @Post('multipart/resume')
+    // @ApiRoute({
+    //     auth: 'required',
+    //     summary: '获取断点续传分片预签名 URL',
+    //     description: '为未完成的分片重新生成预签名 URL，支持断点续传场景。',
+    // })
+    // resumeMultipart(@Body() dto: ResumablePartUrlsDto) {
+    //     return this.fileService.resumeMultipartUpload(dto);
+    // }
 
     @Post('multipart/complete')
     @HttpCode(HttpStatus.NO_CONTENT)
