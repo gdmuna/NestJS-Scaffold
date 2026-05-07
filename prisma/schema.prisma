@@ -28,7 +28,7 @@ enum FileStatus {
 }
 
 model File {
-  id          String     @id @default(cuid())
+  id          String     @id @default(uuid(7))
   userId      String
   domain      String
   bucket      String
