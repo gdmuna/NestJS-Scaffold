@@ -21,6 +21,7 @@ export default {
 
     // 路径别名映射(与 tsconfig.json 中的 paths 对应)
     moduleNameMapper: {
+        '^uuid$': '<rootDir>/test/__mocks__/uuid.ts', // uuid v14 是纯 ESM，Jest CJS 模式下用本地 shim
         '^@/(.*?)(?:\\.js)?$': '<rootDir>/src/$1', // @/ 别名(可选 .js 后缀)
         '^@root/(.*?)(?:\\.js)?$': '<rootDir>/$1', // @/ 别名(可选 .js 后缀)
         '^(\\.{1,2}/.*)\\.js$': '$1', // ESM: 相对路径 .js 映射到 .ts

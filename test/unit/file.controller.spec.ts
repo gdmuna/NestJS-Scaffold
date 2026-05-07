@@ -199,20 +199,20 @@ describe('FileController (unit)', () => {
     });
 
     // ── fileExists ────────────────────────────────────────────────────────────
+    // Endpoint commented out in controller
+    // describe.skip('fileExists', () => {
+    //     it('should complete without error when file exists', async () => {
+    //         mockFileService.fileExists.mockResolvedValue(true);
 
-    describe('fileExists', () => {
-        it('should complete without error when file exists', async () => {
-            mockFileService.fileExists.mockResolvedValue(true);
+    //         await expect(controller.fileExists('file_1')).resolves.toBeUndefined();
+    //     });
 
-            await expect(controller.fileExists('file_1')).resolves.toBeUndefined();
-        });
+    //     it('should throw NotFoundException when file does not exist', async () => {
+    //         mockFileService.fileExists.mockResolvedValue(false);
 
-        it('should throw NotFoundException when file does not exist', async () => {
-            mockFileService.fileExists.mockResolvedValue(false);
-
-            await expect(controller.fileExists('file_1')).rejects.toBeInstanceOf(NotFoundException);
-        });
-    });
+    //         await expect(controller.fileExists('file_1')).rejects.toBeInstanceOf(NotFoundException);
+    //     });
+    // });
 
     // ── deleteFiles ───────────────────────────────────────────────────────────
 
@@ -229,24 +229,24 @@ describe('FileController (unit)', () => {
     });
 
     // ── copyFile ──────────────────────────────────────────────────────────────
+    // Endpoint commented out in controller
+    // describe.skip('copyFile', () => {
+    //     it('should call fileService.copyFile and return new fileId', async () => {
+    //         const mockResult = { fileId: 'file_copy' };
+    //         mockFileService.copyFile.mockResolvedValue(mockResult);
 
-    describe('copyFile', () => {
-        it('should call fileService.copyFile and return new fileId', async () => {
-            const mockResult = { fileId: 'file_copy' };
-            mockFileService.copyFile.mockResolvedValue(mockResult);
+    //         const result = await controller.copyFile(
+    //             { fileId: 'file_1', destDomain: 'avatar' } as any,
+    //             mockRequest
+    //         );
 
-            const result = await controller.copyFile(
-                { fileId: 'file_1', destDomain: 'avatar' } as any,
-                mockRequest
-            );
-
-            expect(result).toBe(mockResult);
-            expect(mockFileService.copyFile).toHaveBeenCalledWith(
-                'u_1',
-                expect.objectContaining({ fileId: 'file_1' })
-            );
-        });
-    });
+    //         expect(result).toBe(mockResult);
+    //         expect(mockFileService.copyFile).toHaveBeenCalledWith(
+    //             'u_1',
+    //             expect.objectContaining({ fileId: 'file_1' })
+    //         );
+    //     });
+    // });
 
     // ── initMultipart ─────────────────────────────────────────────────────────
 
@@ -274,28 +274,28 @@ describe('FileController (unit)', () => {
     });
 
     // ── resumeMultipart ───────────────────────────────────────────────────────
+    // Endpoint commented out in controller
+    // describe.skip('resumeMultipart', () => {
+    //     it('should return resumable part URLs', async () => {
+    //         const mockResult = {
+    //             completedParts: [],
+    //             partUrls: [{ partNumber: 1, url: 'https://s3.example.com/part1' }],
+    //         };
+    //         mockFileService.resumeMultipartUpload.mockResolvedValue(mockResult);
 
-    describe('resumeMultipart', () => {
-        it('should return resumable part URLs', async () => {
-            const mockResult = {
-                completedParts: [],
-                partUrls: [{ partNumber: 1, url: 'https://s3.example.com/part1' }],
-            };
-            mockFileService.resumeMultipartUpload.mockResolvedValue(mockResult);
+    //         const result = await controller.resumeMultipart({
+    //             fileId: 'file_1',
+    //             totalParts: 3,
+    //             completedPartNumbers: [2, 3],
+    //             expiresIn: 3600,
+    //         } as any);
 
-            const result = await controller.resumeMultipart({
-                fileId: 'file_1',
-                totalParts: 3,
-                completedPartNumbers: [2, 3],
-                expiresIn: 3600,
-            } as any);
-
-            expect(result).toBe(mockResult);
-            expect(mockFileService.resumeMultipartUpload).toHaveBeenCalledWith(
-                expect.objectContaining({ fileId: 'file_1' })
-            );
-        });
-    });
+    //         expect(result).toBe(mockResult);
+    //         expect(mockFileService.resumeMultipartUpload).toHaveBeenCalledWith(
+    //             expect.objectContaining({ fileId: 'file_1' })
+    //         );
+    //     });
+    // });
 
     // ── completeMultipart ─────────────────────────────────────────────────────
 

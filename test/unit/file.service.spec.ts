@@ -1,6 +1,6 @@
 import { FileService } from '@/modules/file/file.service.js';
 import { FileRepository } from '@/modules/file/file.repository.js';
-import { AvatarStrategy } from '@/modules/file/strategies/avatar.strategy.js';
+import { ImageStrategy } from '@/modules/file/strategies/image.strategy.js';
 import { VideoStrategy } from '@/modules/file/strategies/video.strategy.js';
 import { DocumentStrategy } from '@/modules/file/strategies/document.strategy.js';
 import {
@@ -72,7 +72,7 @@ const mockFileRepo: jest.Mocked<
     softDeleteMany: jest.fn(),
 };
 
-const mockAvatarStrategy = new AvatarStrategy();
+const mockImageStrategy = new ImageStrategy();
 const mockVideoStrategy = new VideoStrategy();
 const mockDocumentStrategy = new DocumentStrategy();
 
@@ -82,10 +82,10 @@ function buildService() {
     return new FileService(
         mockStorageService as unknown as StorageService,
         mockFileRepo as unknown as FileRepository,
-        mockAvatarStrategy,
+        mockCacheManager as any,
         mockDocumentStrategy,
-        mockVideoStrategy,
-        mockCacheManager as any
+        mockImageStrategy,
+        mockVideoStrategy
     );
 }
 
@@ -93,9 +93,9 @@ function makeFileRecord(overrides: Partial<Record<string, any>> = {}) {
     return {
         id: 'file_1',
         userId: 'u_1',
-        domain: 'avatar',
+        domain: 'image',
         bucket: 'public',
-        key: 'avatars/u_1/123.png',
+        key: 'images/00000000-0000-7000-0000-000000000001',
         filename: 'photo.png',
         contentType: 'image/png',
         status: 'ACTIVE',
@@ -122,14 +122,15 @@ describe('FileService', () => {
     // ── getPresignedUploadUrl ─────────────────────────────────────────────────
 
     describe('getPresignedUploadUrl', () => {
-        it('should return fileId and uploadUrl for avatar domain', async () => {
+        it('should return fileId and uploadUrl for image domain', async () => {
             mockStorageService.getUploadUrl.mockResolvedValue('https://s3.example.com/presign');
             mockFileRepo.create.mockResolvedValue(makeFileRecord({ id: 'file_new' }));
 
             const result = await service.getPresignedUploadUrl('u_1', {
-                domain: 'avatar',
+                domain: 'image',
                 contentType: 'image/png',
                 filename: 'photo.png',
+                fileSize: 204800,
             } as any);
 
             expect(result).toEqual({
@@ -138,30 +139,31 @@ describe('FileService', () => {
             });
             expect(mockStorageService.getUploadUrl).toHaveBeenCalledWith(
                 'public',
-                expect.stringContaining('avatars/u_1/'),
+                expect.stringContaining('images/'),
                 'image/png'
             );
             expect(mockFileRepo.create).toHaveBeenCalledWith(
-                expect.objectContaining({ userId: 'u_1', domain: 'avatar', bucket: 'public' })
+                expect.objectContaining({ userId: 'u_1', domain: 'image', bucket: 'public' })
             );
         });
 
         it('should return fileId and uploadUrl for video domain', async () => {
             mockStorageService.getUploadUrl.mockResolvedValue('https://s3.example.com/video');
             mockFileRepo.create.mockResolvedValue(
-                makeFileRecord({ id: 'file_video', domain: 'video', bucket: 'private' })
+                makeFileRecord({ id: 'file_video', domain: 'video', bucket: 'public' })
             );
 
             const result = await service.getPresignedUploadUrl('u_2', {
                 domain: 'video',
                 contentType: 'video/mp4',
                 filename: 'clip.mp4',
+                fileSize: 10485760,
             } as any);
 
             expect(result.fileId).toBe('file_video');
             expect(mockStorageService.getUploadUrl).toHaveBeenCalledWith(
-                'private',
-                expect.stringContaining('videos/u_2/'),
+                'public',
+                expect.stringContaining('videos/'),
                 'video/mp4'
             );
         });
@@ -179,38 +181,28 @@ describe('FileService', () => {
         it('should throw FileInvalidTypeException for invalid content type', async () => {
             await expect(
                 service.getPresignedUploadUrl('u_1', {
-                    domain: 'avatar',
+                    domain: 'image',
                     contentType: 'video/mp4',
                     filename: 'video.mp4',
+                    fileSize: 204800,
                 } as any)
             ).rejects.toBeInstanceOf(FileInvalidTypeException);
         });
 
-        it('should use CAS flow when sha256 is provided', async () => {
-            const sha256 = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
-            mockStorageService.getUploadUrlCAS.mockResolvedValue(
-                'https://s3.example.com/staging/presign'
-            );
-            mockFileRepo.create.mockResolvedValue(makeFileRecord({ id: 'file_cas', sha256 }));
+        it('should use standard upload (CAS flow is disabled)', async () => {
+            mockStorageService.getUploadUrl.mockResolvedValue('https://s3.example.com/presign');
+            mockFileRepo.create.mockResolvedValue(makeFileRecord({ id: 'file_std' }));
 
             const result = await service.getPresignedUploadUrl('u_1', {
-                domain: 'avatar',
+                domain: 'image',
                 contentType: 'image/png',
                 filename: 'photo.png',
-                sha256,
+                fileSize: 204800,
             } as any);
 
-            expect(result).toEqual({
-                fileId: 'file_cas',
-                uploadUrl: 'https://s3.example.com/staging/presign',
-            });
-            expect(mockStorageService.getUploadUrlCAS).toHaveBeenCalledWith(sha256, 'image/png');
-            expect(mockStorageService.getUploadUrl).not.toHaveBeenCalled();
-            expect(mockCacheManager.set).toHaveBeenCalledWith(
-                `cas:pending:file_cas`,
-                sha256,
-                expect.any(Number)
-            );
+            expect(result.fileId).toBe('file_std');
+            expect(mockStorageService.getUploadUrl).toHaveBeenCalled();
+            expect(mockStorageService.getUploadUrlCAS).not.toHaveBeenCalled();
         });
     });
 
@@ -324,7 +316,7 @@ describe('FileService', () => {
 
             const result = await service.serverUpload(
                 'u_1',
-                { domain: 'avatar', filename: 'photo.jpg' } as any,
+                { domain: 'image', filename: 'photo.jpg' } as any,
                 Buffer.from('data'),
                 'image/jpeg'
             );
@@ -332,7 +324,7 @@ describe('FileService', () => {
             expect(result).toEqual({ fileId: 'file_server' });
             expect(mockStorageService.putObject).toHaveBeenCalledWith(
                 'public',
-                expect.stringContaining('avatars/u_1/'),
+                expect.stringContaining('images/'),
                 expect.any(Buffer),
                 'image/jpeg'
             );
@@ -394,7 +386,7 @@ describe('FileService', () => {
 
             expect(mockStorageService.deleteObject).toHaveBeenCalledWith(
                 'public',
-                'avatars/u_1/123.png'
+                'images/00000000-0000-7000-0000-000000000001'
             );
             expect(mockStorageService.deleteObjects).not.toHaveBeenCalled();
             expect(mockFileRepo.softDeleteMany).toHaveBeenCalledWith(['file_1']);
@@ -454,7 +446,7 @@ describe('FileService', () => {
             mockFileRepo.findById.mockResolvedValue(makeFileRecord());
             mockStorageService.copyObject.mockResolvedValue(undefined);
             mockFileRepo.create.mockResolvedValue(
-                makeFileRecord({ id: 'file_copy', domain: 'avatar' })
+                makeFileRecord({ id: 'file_copy', domain: 'image' })
             );
             mockFileRepo.updateStatus.mockResolvedValue(
                 makeFileRecord({ id: 'file_copy', status: 'ACTIVE' })
@@ -462,7 +454,7 @@ describe('FileService', () => {
 
             const result = await service.copyFile('u_1', {
                 fileId: 'file_1',
-                destDomain: 'avatar',
+                destDomain: 'image',
             } as any);
 
             expect(result).toEqual({ fileId: 'file_copy' });
@@ -487,7 +479,7 @@ describe('FileService', () => {
                 domain: 'video',
                 contentType: 'video/mp4',
                 filename: 'movie.mp4',
-                partCount: 1,
+                fileSize: 52428800, // 50MB → partCount = 1 (50MB / 50MB per part)
             } as any);
 
             expect(result.fileId).toBe('file_multi');
