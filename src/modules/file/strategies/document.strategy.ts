@@ -1,6 +1,8 @@
-import { Injectable } from '@nestjs/common';
 import { FileInvalidTypeException } from '../file.exception.js';
 import type { UploadStrategy } from '../file.interface.js';
+
+import { Injectable } from '@nestjs/common';
+import { v7 as uuidv7 } from 'uuid';
 
 const ALLOWED_MIME = [
     'application/pdf',
@@ -12,6 +14,8 @@ const ALLOWED_MIME = [
     'text/csv',
 ];
 
+const PART_SIZE = 10 * 1024 * 1024; // 10MB
+
 @Injectable()
 export class DocumentStrategy implements UploadStrategy {
     validate(dto: { contentType: string }): void {
@@ -22,12 +26,15 @@ export class DocumentStrategy implements UploadStrategy {
         }
     }
 
-    resolveKey(userId: string, filename: string): string {
-        const ext = filename.split('.').pop() ?? 'bin';
-        return `documents/${userId}/${Date.now()}.${ext}`;
+    resolveKey(): string {
+        return `documents/${uuidv7()}`;
     }
 
     getBucket(): string {
-        return 'private';
+        return 'public';
+    }
+
+    getPartCount(fileSize: number): number {
+        return Math.ceil(fileSize / PART_SIZE);
     }
 }

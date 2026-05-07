@@ -1,8 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import { FileInvalidTypeException } from '../file.exception.js';
 import type { UploadStrategy } from '../file.interface.js';
+import { v7 as uuidv7 } from 'uuid';
 
 const ALLOWED_MIME = ['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime', 'video/x-msvideo'];
+
+const PART_SIZE = 50 * 1024 * 1024; // 50MB
 
 @Injectable()
 export class VideoStrategy implements UploadStrategy {
@@ -14,12 +17,15 @@ export class VideoStrategy implements UploadStrategy {
         }
     }
 
-    resolveKey(userId: string, filename: string): string {
-        const ext = filename.split('.').pop() ?? 'bin';
-        return `videos/${userId}/${Date.now()}.${ext}`;
+    resolveKey(): string {
+        return `videos/${uuidv7()}`;
     }
 
     getBucket(): string {
-        return 'private';
+        return 'public';
+    }
+
+    getPartCount(fileSize: number): number {
+        return Math.ceil(fileSize / PART_SIZE);
     }
 }
