@@ -1,4 +1,5 @@
-import { RegisterException, InfraException, ClientException } from '@/common/exceptions/index.js';
+import { RegisterException } from '@/common/exceptions/exception-registry.js';
+import { InfraException, ClientException } from '@/common/exceptions/app.exception.js';
 
 export const StorageExceptionCode = {
     UPLOAD_FAILED: 'STORAGE_UPLOAD_FAILED',

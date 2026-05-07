@@ -1,4 +1,5 @@
-import { RegisterException, ClientException } from '@/common/exceptions/index.js';
+import { RegisterException } from '@/common/exceptions/exception-registry.js';
+import { ClientException } from '@/common/exceptions/app.exception.js';
 
 export const FileExceptionCode = {
     INVALID_FILE_TYPE: 'FILE_INVALID_TYPE',

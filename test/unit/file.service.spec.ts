@@ -1,3 +1,4 @@
+import type { Mocked } from 'vitest';
 import { FileService } from '@/modules/file/file.service.js';
 import { FileRepository } from '@/modules/file/file.repository.js';
 import { ImageStrategy } from '@/modules/file/strategies/image.strategy.js';
@@ -14,7 +15,7 @@ import { Readable } from 'stream';
 
 // ─── Mocks ──────────────────────────────────────────────────────────────────
 
-const mockStorageService: jest.Mocked<
+const mockStorageService: Mocked<
     Pick<
         StorageService,
         | 'getUploadUrl'
@@ -36,40 +37,40 @@ const mockStorageService: jest.Mocked<
         | 'abortMultipartUpload'
     > & { stagingBucket: string }
 > = {
-    getUploadUrl: jest.fn(),
-    getUploadUrlCAS: jest.fn(),
-    getDownloadUrl: jest.fn(),
-    getPublicUrl: jest.fn(),
-    putObject: jest.fn(),
-    getObject: jest.fn(),
-    getObjectStream: jest.fn(),
-    getObjectSize: jest.fn(),
-    deleteObject: jest.fn(),
-    deleteObjects: jest.fn(),
-    objectExists: jest.fn(),
-    copyObject: jest.fn(),
-    promoteFromStaging: jest.fn(),
-    initMultipartUpload: jest.fn(),
-    getResumablePartUrls: jest.fn(),
-    completeMultipartUpload: jest.fn(),
-    abortMultipartUpload: jest.fn(),
+    getUploadUrl: vi.fn(),
+    getUploadUrlCAS: vi.fn(),
+    getDownloadUrl: vi.fn(),
+    getPublicUrl: vi.fn(),
+    putObject: vi.fn(),
+    getObject: vi.fn(),
+    getObjectStream: vi.fn(),
+    getObjectSize: vi.fn(),
+    deleteObject: vi.fn(),
+    deleteObjects: vi.fn(),
+    objectExists: vi.fn(),
+    copyObject: vi.fn(),
+    promoteFromStaging: vi.fn(),
+    initMultipartUpload: vi.fn(),
+    getResumablePartUrls: vi.fn(),
+    completeMultipartUpload: vi.fn(),
+    abortMultipartUpload: vi.fn(),
     stagingBucket: 'nestjs-scaffold-staging',
 };
 
 const mockCacheManager = {
-    get: jest.fn(),
-    set: jest.fn(),
-    del: jest.fn(),
+    get: vi.fn(),
+    set: vi.fn(),
+    del: vi.fn(),
 };
 
-const mockFileRepo: jest.Mocked<
+const mockFileRepo: Mocked<
     Pick<FileRepository, 'create' | 'findById' | 'updateStatus' | 'softDelete' | 'softDeleteMany'>
 > = {
-    create: jest.fn(),
-    findById: jest.fn(),
-    updateStatus: jest.fn(),
-    softDelete: jest.fn(),
-    softDeleteMany: jest.fn(),
+    create: vi.fn(),
+    findById: vi.fn(),
+    updateStatus: vi.fn(),
+    softDelete: vi.fn(),
+    softDeleteMany: vi.fn(),
 };
 
 const mockImageStrategy = new ImageStrategy();
@@ -112,7 +113,7 @@ describe('FileService', () => {
     let service: FileService;
 
     beforeEach(() => {
-        jest.clearAllMocks();
+        vi.clearAllMocks();
         mockCacheManager.set.mockResolvedValue(undefined);
         mockCacheManager.del.mockResolvedValue(undefined);
         mockCacheManager.get.mockResolvedValue(undefined);

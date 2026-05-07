@@ -1,3 +1,4 @@
+import type { Mocked } from 'vitest';
 import { FileController } from '@/modules/file/file.controller.js';
 import { FileService } from '@/modules/file/file.service.js';
 import { NotFoundException } from '@nestjs/common';
@@ -5,7 +6,7 @@ import { Readable } from 'stream';
 
 // ─── Mock FileService ─────────────────────────────────────────────────────────
 
-const mockFileService: jest.Mocked<
+const mockFileService: Mocked<
     Pick<
         FileService,
         | 'getPresignedUploadUrl'
@@ -23,19 +24,19 @@ const mockFileService: jest.Mocked<
         | 'abortMultipartUpload'
     >
 > = {
-    getPresignedUploadUrl: jest.fn(),
-    getPresignedDownloadUrl: jest.fn(),
-    getPublicUrl: jest.fn(),
-    confirmUpload: jest.fn(),
-    serverUpload: jest.fn(),
-    proxyDownload: jest.fn(),
-    fileExists: jest.fn(),
-    deleteFiles: jest.fn(),
-    copyFile: jest.fn(),
-    initMultipartUpload: jest.fn(),
-    resumeMultipartUpload: jest.fn(),
-    completeMultipartUpload: jest.fn(),
-    abortMultipartUpload: jest.fn(),
+    getPresignedUploadUrl: vi.fn(),
+    getPresignedDownloadUrl: vi.fn(),
+    getPublicUrl: vi.fn(),
+    confirmUpload: vi.fn(),
+    serverUpload: vi.fn(),
+    proxyDownload: vi.fn(),
+    fileExists: vi.fn(),
+    deleteFiles: vi.fn(),
+    copyFile: vi.fn(),
+    initMultipartUpload: vi.fn(),
+    resumeMultipartUpload: vi.fn(),
+    completeMultipartUpload: vi.fn(),
+    abortMultipartUpload: vi.fn(),
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -52,7 +53,7 @@ describe('FileController (unit)', () => {
     let controller: FileController;
 
     beforeEach(() => {
-        jest.clearAllMocks();
+        vi.clearAllMocks();
         controller = buildController();
     });
 
@@ -164,7 +165,7 @@ describe('FileController (unit)', () => {
                 filename: 'photo.jpg',
                 isStream: false,
             });
-            const mockRes: any = { setHeader: jest.fn() };
+            const mockRes: any = { setHeader: vi.fn() };
 
             const result = await controller.proxyDownload('file_1', mockRes);
 
@@ -186,7 +187,7 @@ describe('FileController (unit)', () => {
                 filename: 'video.mp4',
                 isStream: true,
             });
-            const mockRes: any = { setHeader: jest.fn() };
+            const mockRes: any = { setHeader: vi.fn() };
 
             const result = await controller.proxyDownload('file_1', mockRes);
 

@@ -19,7 +19,7 @@ export default [
             globals: {
                 ...globals.node,
                 ...globals.es2024,
-                ...globals.jest,
+                ...globals.vitest,
                 NodeJS: 'readonly',
                 Express: 'readonly',
             },
