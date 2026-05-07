@@ -18,10 +18,10 @@ describe('AuthService', () => {
         },
     };
 
-    const mockTokenService: Mocked<Pick<TokenService, 'issueTokenPair' | 'verifyToken'>> = {
+    const mockTokenService = {
         issueTokenPair: vi.fn(),
         verifyToken: vi.fn(),
-    };
+    } as unknown as Mocked<Pick<TokenService, 'issueTokenPair' | 'verifyToken'>>;
 
     const mockConfigService: any = {
         get: vi.fn().mockReturnValue(10),
