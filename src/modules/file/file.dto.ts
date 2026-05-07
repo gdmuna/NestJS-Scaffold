@@ -5,19 +5,28 @@ import { z } from 'zod/v4';
 
 export const PresignUploadDtoSchema = z
     .object({
-        domain: z.string().meta({ title: '文件领域', example: 'avatar' }),
+        domain: z.string().meta({ title: '文件领域', example: 'image' }),
         contentType: z
             .string()
             .meta({ title: '文件类型，必须是合法的MIME类型', example: 'image/png' }),
         filename: z.string().meta({ title: '原始文件名', example: 'profile.png' }),
-        sha256: z
-            .string()
-            .regex(/^[0-9a-f]{64}$/, 'sha256 必须是 64 位小写十六进制字符串')
-            .optional()
+        fileSize: z
+            .number({ message: '文件大小必须是数字' })
+            .int({ message: '文件大小必须是整数' })
+            .positive({ message: '文件大小必须是正整数' })
+            .max(10 * 1024 * 1024, { message: '文件大小不能超过10MB' })
             .meta({
-                title: '文件内容的 SHA-256（可选，启用内容寻址存储与完整性校验）',
-                example: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+                title: '文件大小（字节），必须是正整数且不超过10MB',
+                example: 204800,
             }),
+        // sha256: z
+        //     .string()
+        //     .regex(/^[0-9a-f]{64}$/, 'sha256 必须是 64 位小写十六进制字符串')
+        //     .optional()
+        //     .meta({
+        //         title: '文件内容的 SHA-256',
+        //         example: 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855',
+        //     }),
     })
     .meta({ description: '获取文件上传预签名 URL 的请求 Dto' });
 
@@ -58,10 +67,15 @@ export const MultipartInitDtoSchema = z
             .string()
             .meta({ title: '文件类型，必须是合法的MIME类型', example: 'video/mp4' }),
         filename: z.string().meta({ title: '原始文件名', example: 'movie.mp4' }),
-        partCount: z.number().int().positive().max(10000).meta({
-            title: '分片数量，必须是正整数且不超过10000',
-            example: 5,
-        }),
+        fileSize: z
+            .number()
+            .int()
+            .positive()
+            .max(5 * 1024 * 1024 * 1024)
+            .meta({
+                title: '文件大小（字节），必须是正整数且不超过5GB',
+                example: 104857600,
+            }),
     })
     .meta({ description: '初始化分片上传的请求 Dto' });
 
@@ -128,7 +142,7 @@ export class DeleteFilesDto extends createZodDto(DeleteFilesDtoSchema) {}
 export const CopyFileDtoSchema = z
     .object({
         fileId: z.string().min(1).meta({ title: '源文件记录 ID', example: 'cm8k...' }),
-        destDomain: z.string().meta({ title: '目标文件领域', example: 'avatar' }),
+        destDomain: z.string().meta({ title: '目标文件领域', example: 'image' }),
         destFilename: z.string().optional().meta({ title: '目标文件名', example: 'final.jpg' }),
     })
     .meta({ description: '服务端复制文件的请求 Dto' });
@@ -137,7 +151,7 @@ export class CopyFileDto extends createZodDto(CopyFileDtoSchema) {}
 
 export const ServerUploadDtoSchema = z
     .object({
-        domain: z.string().meta({ title: '文件领域', example: 'avatar' }),
+        domain: z.string().meta({ title: '文件领域', example: 'image' }),
         filename: z.string().meta({ title: '原始文件名', example: 'photo.jpg' }),
         file: z
             .file()

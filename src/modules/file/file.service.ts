@@ -1,7 +1,5 @@
 import { FileRepository } from './file.repository.js';
-import { AvatarStrategy } from './strategies/avatar.strategy.js';
-import { VideoStrategy } from './strategies/video.strategy.js';
-import { DocumentStrategy } from './strategies/document.strategy.js';
+import { DocumentStrategy, ImageStrategy, VideoStrategy } from './strategies/index.js';
 import {
     FileInvalidDomainException,
     FileRecordNotFoundException,
@@ -27,8 +25,8 @@ import type { BucketType, UploadPart } from '@/infra/storage/storage.service.js'
 
 import type { FileModel } from '@root/prisma/generated/models/File.js';
 
-import { Injectable, Inject } from '@nestjs/common';
-import { CACHE_MANAGER, Cache } from '@nestjs/cache-manager';
+import { Injectable } from '@nestjs/common';
+import { Cache } from '@nestjs/cache-manager';
 import type { Readable } from 'stream';
 
 @Injectable()
@@ -38,13 +36,13 @@ export class FileService {
     constructor(
         private readonly storageService: StorageService,
         private readonly fileRepo: FileRepository,
-        private readonly avatarStrategy: AvatarStrategy,
+        private readonly cacheManager: Cache,
         private readonly documentStrategy: DocumentStrategy,
-        private readonly videoStrategy: VideoStrategy,
-        private readonly cacheManager: Cache
+        private readonly imageStrategy: ImageStrategy,
+        private readonly videoStrategy: VideoStrategy
     ) {
         this.strategies = {
-            avatar: this.avatarStrategy,
+            image: this.imageStrategy,
             document: this.documentStrategy,
             video: this.videoStrategy,
         };
@@ -71,13 +69,14 @@ export class FileService {
         const key = strategy.resolveKey(userId, dto.filename);
         const bucket = strategy.getBucket() as BucketType;
 
-        let uploadUrl: string;
-        if (dto.sha256) {
-            // CAS 流程：上传到 staging 桶，启用 S3 checksum 校验
-            uploadUrl = await this.storageService.getUploadUrlCAS(dto.sha256, dto.contentType);
-        } else {
-            uploadUrl = await this.storageService.getUploadUrl(bucket, key, dto.contentType);
-        }
+        // let uploadUrl: string;
+        // if (dto.sha256) {
+        //     // CAS 流程：上传到 staging 桶，启用 S3 checksum 校验
+        //     uploadUrl = await this.storageService.getUploadUrlCAS(dto.sha256, dto.contentType);
+        // } else {
+        //     uploadUrl = await this.storageService.getUploadUrl(bucket, key, dto.contentType);
+        // }
+        const uploadUrl = await this.storageService.getUploadUrl(bucket, key, dto.contentType);
 
         const record = await this.fileRepo.create({
             userId,
@@ -86,17 +85,17 @@ export class FileService {
             key,
             filename: dto.filename,
             contentType: dto.contentType,
-            sha256: dto.sha256,
+            // sha256: dto.sha256,
         });
 
-        if (dto.sha256) {
-            // 将期望的 sha256 存入 KVS，供 confirmUpload 快速查验，TTL = 1小时 + 5分钟容错
-            await this.cacheManager.set(
-                `cas:pending:${record.id}`,
-                dto.sha256,
-                (3600 + 300) * 1000
-            );
-        }
+        // if (dto.sha256) {
+        //     // 将期望的 sha256 存入 KVS，供 confirmUpload 快速查验，TTL = 1小时 + 5分钟容错
+        //     await this.cacheManager.set(
+        //         `cas:pending:${record.id}`,
+        //         dto.sha256,
+        //         (3600 + 300) * 1000
+        //     );
+        // }
 
         return { fileId: record.id, uploadUrl };
     }
@@ -149,7 +148,7 @@ export class FileService {
     /**
      * 获取公开文件的直接访问 URL（不带签名，依赖 CDN / publicBaseUrl）
      */
-    getPublicUrl(fileId: string): Promise<string> {
+    async getPublicUrl(fileId: string): Promise<string> {
         return this.requireFile(fileId).then((r) => this.storageService.getPublicUrl(r.key));
     }
 
@@ -276,11 +275,12 @@ export class FileService {
         strategy.validate(dto);
         const key = strategy.resolveKey(userId, dto.filename);
         const bucket = strategy.getBucket() as BucketType;
+        const partCount = strategy.getPartCount(dto.fileSize);
         const { uploadId, partUrls } = await this.storageService.initMultipartUpload(
             bucket,
             key,
             dto.contentType,
-            dto.partCount
+            partCount
         );
         const record = await this.fileRepo.create({
             userId,
