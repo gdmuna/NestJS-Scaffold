@@ -3,27 +3,31 @@ import { DocumentStrategy, ImageStrategy, VideoStrategy } from './strategies/ind
 import {
     FileInvalidDomainException,
     FileRecordNotFoundException,
-    FileStagingNotFoundException,
+    // FileStagingNotFoundException,
 } from './file.exception.js';
 import { PROXY_SIZE_THRESHOLD } from './file.constant.js';
 import type { FileDomain, UploadStrategy } from './file.interface.js';
 import {
     PresignUploadDto,
-    MultipartInitDto,
+    // MultipartInitDto,
     PresignDownloadDto,
     DeleteFilesDto,
     CopyFileDto,
-    ResumablePartUrlsDto,
-    CompleteMultipartDto,
-    AbortMultipartDto,
+    // ResumablePartUrlsDto,
+    // CompleteMultipartDto,
+    // AbortMultipartDto,
     ServerUploadDto,
     ConfirmUploadDto,
 } from './file.dto.js';
 
 import { StorageService } from '@/infra/storage/storage.service.js';
-import type { BucketType, UploadPart } from '@/infra/storage/storage.service.js';
+import type {
+    BucketType,
+    // UploadPart
+} from '@/infra/storage/storage.service.js';
 
 import type { FileModel } from '@root/prisma/generated/models/File.js';
+import { FileVisibility } from '@root/prisma/generated/enums.js';
 
 import { Injectable } from '@nestjs/common';
 import { Cache } from '@nestjs/cache-manager';
@@ -85,6 +89,7 @@ export class FileService {
             key,
             filename: dto.filename,
             contentType: dto.contentType,
+            visibility: bucket === 'public' ? FileVisibility.PUBLIC : FileVisibility.PRIVATE,
             // sha256: dto.sha256,
         });
 
@@ -111,28 +116,28 @@ export class FileService {
     async confirmUpload(dto: ConfirmUploadDto): Promise<FileModel> {
         const record = await this.requireFile(dto.fileId);
 
-        if (record.sha256) {
-            // 验证 staging 桶中对应对象是否存在
-            const stagingExists = await this.storageService.objectExists(
-                this.storageService.stagingBucket,
-                record.sha256
-            );
-            if (!stagingExists) {
-                throw new FileStagingNotFoundException({
-                    message: `文件 ${dto.fileId} 的暂存对象未找到，请确认已完成上传`,
-                });
-            }
+        // if (record.sha256) {
+        //     // 验证 staging 桶中对应对象是否存在
+        //     const stagingExists = await this.storageService.objectExists(
+        //         this.storageService.stagingBucket,
+        //         record.sha256
+        //     );
+        //     if (!stagingExists) {
+        //         throw new FileStagingNotFoundException({
+        //             message: `文件 ${dto.fileId} 的暂存对象未找到，请确认已完成上传`,
+        //         });
+        //     }
 
-            // 将对象从 staging 移动到最终目标桶
-            await this.storageService.promoteFromStaging(
-                record.sha256,
-                record.bucket as BucketType,
-                record.key
-            );
+        //     // 将对象从 staging 移动到最终目标桶
+        //     await this.storageService.promoteFromStaging(
+        //         record.sha256,
+        //         record.bucket as BucketType,
+        //         record.key
+        //     );
 
-            // 清理 KVS 临时条目
-            await this.cacheManager.del(`cas:pending:${record.id}`);
-        }
+        //     // 清理 KVS 临时条目
+        //     await this.cacheManager.del(`cas:pending:${record.id}`);
+        // }
 
         return this.fileRepo.updateStatus(record.id, 'ACTIVE');
     }
@@ -176,6 +181,7 @@ export class FileService {
             key,
             filename: dto.filename,
             contentType,
+            visibility: bucket === 'public' ? FileVisibility.PUBLIC : FileVisibility.PRIVATE,
         });
         await this.fileRepo.updateStatus(record.id, 'ACTIVE');
         return { fileId: record.id };
@@ -253,6 +259,7 @@ export class FileService {
             key: destKey,
             filename: destFilename,
             contentType: src.contentType,
+            visibility: destBucket === 'public' ? FileVisibility.PUBLIC : FileVisibility.PRIVATE,
         });
         await this.fileRepo.updateStatus(newRecord.id, 'ACTIVE');
         return { fileId: newRecord.id };
@@ -263,94 +270,94 @@ export class FileService {
     /**
      * 初始化分片上传，返回 fileId、uploadId 和各分片预签名 URL
      */
-    async initMultipartUpload(
-        userId: string,
-        dto: MultipartInitDto
-    ): Promise<{
-        fileId: string;
-        uploadId: string;
-        partUrls: { partNumber: number; url: string }[];
-    }> {
-        const strategy = this.resolveStrategy(dto.domain);
-        strategy.validate(dto);
-        const key = strategy.resolveKey(userId, dto.filename);
-        const bucket = strategy.getBucket() as BucketType;
-        const partCount = strategy.getPartCount(dto.fileSize);
-        const { uploadId, partUrls } = await this.storageService.initMultipartUpload(
-            bucket,
-            key,
-            dto.contentType,
-            partCount
-        );
-        const record = await this.fileRepo.create({
-            userId,
-            domain: dto.domain,
-            bucket,
-            key,
-            filename: dto.filename,
-            contentType: dto.contentType,
-            uploadId,
-        });
-        return { fileId: record.id, uploadId, partUrls };
-    }
+    // async initMultipartUpload(
+    //     userId: string,
+    //     dto: MultipartInitDto
+    // ): Promise<{
+    //     fileId: string;
+    //     uploadId: string;
+    //     partUrls: { partNumber: number; url: string }[];
+    // }> {
+    //     const strategy = this.resolveStrategy(dto.domain);
+    //     strategy.validate(dto);
+    //     const key = strategy.resolveKey(userId, dto.filename);
+    //     const bucket = strategy.getBucket() as BucketType;
+    //     const partCount = strategy.getPartCount(dto.fileSize);
+    //     const { uploadId, partUrls } = await this.storageService.initMultipartUpload(
+    //         bucket,
+    //         key,
+    //         dto.contentType,
+    //         partCount
+    //     );
+    //     const record = await this.fileRepo.create({
+    //         userId,
+    //         domain: dto.domain,
+    //         bucket,
+    //         key,
+    //         filename: dto.filename,
+    //         contentType: dto.contentType,
+    //         uploadId,
+    //     });
+    //     return { fileId: record.id, uploadId, partUrls };
+    // }
 
     /**
      * 获取断点续传分片预签名 URL
      */
-    async resumeMultipartUpload(dto: ResumablePartUrlsDto) {
-        const record = await this.requireFile(dto.fileId);
-        if (!record.uploadId) {
-            throw new FileRecordNotFoundException({
-                message: `文件 ${dto.fileId} 没有关联的分片上传任务`,
-            });
-        }
-        return this.storageService.getResumablePartUrls(
-            record.bucket,
-            record.key,
-            record.uploadId,
-            dto.totalParts,
-            dto.completedPartNumbers,
-            dto.expiresIn
-        );
-    }
+    // async resumeMultipartUpload(dto: ResumablePartUrlsDto) {
+    //     const record = await this.requireFile(dto.fileId);
+    //     if (!record.uploadId) {
+    //         throw new FileRecordNotFoundException({
+    //             message: `文件 ${dto.fileId} 没有关联的分片上传任务`,
+    //         });
+    //     }
+    //     return this.storageService.getResumablePartUrls(
+    //         record.bucket,
+    //         record.key,
+    //         record.uploadId,
+    //         dto.totalParts,
+    //         dto.completedPartNumbers,
+    //         dto.expiresIn
+    //     );
+    // }
 
     /**
      * 完成分片上传（合并所有分片），激活文件记录
      */
-    async completeMultipartUpload(dto: CompleteMultipartDto): Promise<void> {
-        const record = await this.requireFile(dto.fileId);
-        if (!record.uploadId) {
-            throw new FileRecordNotFoundException({
-                message: `文件 ${dto.fileId} 没有关联的分片上传任务`,
-            });
-        }
-        const parts: UploadPart[] = dto.parts.map((p) => ({
-            PartNumber: p.PartNumber,
-            ETag: p.ETag,
-        }));
-        await this.storageService.completeMultipartUpload(
-            record.bucket,
-            record.key,
-            record.uploadId,
-            parts
-        );
-        await this.fileRepo.updateStatus(record.id, 'ACTIVE', null);
-    }
+    // async completeMultipartUpload(dto: CompleteMultipartDto): Promise<void> {
+    //     const record = await this.requireFile(dto.fileId);
+    //     if (!record.uploadId) {
+    //         throw new FileRecordNotFoundException({
+    //             message: `文件 ${dto.fileId} 没有关联的分片上传任务`,
+    //         });
+    //     }
+    //     const parts: UploadPart[] = dto.parts.map((p) => ({
+    //         PartNumber: p.PartNumber,
+    //         ETag: p.ETag,
+    //     }));
+    //     await this.storageService.completeMultipartUpload(
+    //         record.bucket,
+    //         record.key,
+    //         record.uploadId,
+    //         parts
+    //     );
+    //     await this.fileRepo.updateStatus(record.id, 'ACTIVE', null);
+    // }
 
     /**
      * 取消分片上传（清理临时分片），软删除文件记录
      */
-    async abortMultipartUpload(dto: AbortMultipartDto): Promise<void> {
-        const record = await this.requireFile(dto.fileId);
-        if (record.uploadId) {
-            await this.storageService.abortMultipartUpload(
-                record.bucket,
-                record.key,
-                record.uploadId
-            );
-        }
-        await this.fileRepo.softDelete(record.id);
-    }
+    // async abortMultipartUpload(dto: AbortMultipartDto): Promise<void> {
+    //     const record = await this.requireFile(dto.fileId);
+    //     if (record.uploadId) {
+    //         await this.storageService.abortMultipartUpload(
+    //             record.bucket,
+    //             record.key,
+    //             record.uploadId
+    //         );
+    //     }
+    //     await this.fileRepo.softDelete(record.id);
+    // }
 
     // ─── 内部工具 ──────────────────────────────────────────────────────────────
 

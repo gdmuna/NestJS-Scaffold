@@ -18,10 +18,10 @@ const mockFileService: Mocked<
         | 'fileExists'
         | 'deleteFiles'
         | 'copyFile'
-        | 'initMultipartUpload'
-        | 'resumeMultipartUpload'
-        | 'completeMultipartUpload'
-        | 'abortMultipartUpload'
+        // | 'initMultipartUpload'
+        // | 'resumeMultipartUpload'
+        // | 'completeMultipartUpload'
+        // | 'abortMultipartUpload'
     >
 > = {
     getPresignedUploadUrl: vi.fn(),
@@ -33,10 +33,10 @@ const mockFileService: Mocked<
     fileExists: vi.fn(),
     deleteFiles: vi.fn(),
     copyFile: vi.fn(),
-    initMultipartUpload: vi.fn(),
-    resumeMultipartUpload: vi.fn(),
-    completeMultipartUpload: vi.fn(),
-    abortMultipartUpload: vi.fn(),
+    // initMultipartUpload: vi.fn(),
+    // resumeMultipartUpload: vi.fn(),
+    // completeMultipartUpload: vi.fn(),
+    // abortMultipartUpload: vi.fn(),
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -249,30 +249,11 @@ describe('FileController (unit)', () => {
     //     });
     // });
 
-    // ── initMultipart ─────────────────────────────────────────────────────────
+    // ── initMultipart (disabled) ──────────────────────────────────────────────
 
-    describe('initMultipart', () => {
-        it('should return multipart init result', async () => {
-            const mockResult = { fileId: 'file_multi', uploadId: 'upload_1', partUrls: [] };
-            mockFileService.initMultipartUpload.mockResolvedValue(mockResult);
-
-            const result = await controller.initMultipart(
-                {
-                    domain: 'video',
-                    contentType: 'video/mp4',
-                    filename: 'movie.mp4',
-                    partCount: 3,
-                } as any,
-                mockRequest
-            );
-
-            expect(result).toBe(mockResult);
-            expect(mockFileService.initMultipartUpload).toHaveBeenCalledWith(
-                'u_1',
-                expect.objectContaining({ domain: 'video' })
-            );
-        });
-    });
+    // describe('initMultipart', () => {
+    //     it('should return multipart init result', async () => { ... });
+    // });
 
     // ── resumeMultipart ───────────────────────────────────────────────────────
     // Endpoint commented out in controller
@@ -298,34 +279,15 @@ describe('FileController (unit)', () => {
     //     });
     // });
 
-    // ── completeMultipart ─────────────────────────────────────────────────────
+    // ── completeMultipart (disabled) ──────────────────────────────────────────
 
-    describe('completeMultipart', () => {
-        it('should complete multipart upload', async () => {
-            mockFileService.completeMultipartUpload.mockResolvedValue(undefined);
+    // describe('completeMultipart', () => {
+    //     it('should complete multipart upload', async () => { ... });
+    // });
 
-            await controller.completeMultipart({
-                fileId: 'file_1',
-                parts: [{ PartNumber: 1, ETag: '"etag1"' }],
-            } as any);
+    // ── abortMultipart (disabled) ─────────────────────────────────────────────
 
-            expect(mockFileService.completeMultipartUpload).toHaveBeenCalledWith(
-                expect.objectContaining({ fileId: 'file_1' })
-            );
-        });
-    });
-
-    // ── abortMultipart ────────────────────────────────────────────────────────
-
-    describe('abortMultipart', () => {
-        it('should abort multipart upload', async () => {
-            mockFileService.abortMultipartUpload.mockResolvedValue(undefined);
-
-            await controller.abortMultipart({ fileId: 'file_1' } as any);
-
-            expect(mockFileService.abortMultipartUpload).toHaveBeenCalledWith(
-                expect.objectContaining({ fileId: 'file_1' })
-            );
-        });
-    });
+    // describe('abortMultipart', () => {
+    //     it('should abort multipart upload', async () => { ... });
+    // });
 });

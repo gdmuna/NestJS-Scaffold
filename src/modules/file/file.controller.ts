@@ -2,13 +2,13 @@ import { FileService } from './file.service.js';
 import {
     PresignUploadDto,
     ConfirmUploadDto,
-    MultipartInitDto,
+    // MultipartInitDto,
     PresignDownloadDto,
     DeleteFilesDto,
-    CopyFileDto,
-    ResumablePartUrlsDto,
-    CompleteMultipartDto,
-    AbortMultipartDto,
+    // CopyFileDto,
+    // ResumablePartUrlsDto,
+    // CompleteMultipartDto,
+    // AbortMultipartDto,
     ServerUploadDto,
 } from './file.dto.js';
 
@@ -19,10 +19,10 @@ import {
     Controller,
     Delete,
     Get,
-    Head,
+    // Head,
     HttpCode,
     HttpStatus,
-    NotFoundException,
+    // NotFoundException,
     Param,
     Post,
     Req,
@@ -158,15 +158,15 @@ export class FileController {
 
     // ─── 分片上传 ──────────────────────────────────────────────────────────────
 
-    @Post('multipart/init')
-    @ApiRoute({
-        auth: 'required',
-        summary: '初始化分片上传',
-        description: '初始化分片上传任务，返回 fileId、uploadId 和每个分片的预签名 URL。',
-    })
-    initMultipart(@Body() dto: MultipartInitDto, @Req() req: Request) {
-        return this.fileService.initMultipartUpload(req.jwtClaim!.sub, dto);
-    }
+    // @Post('multipart/init')
+    // @ApiRoute({
+    //     auth: 'required',
+    //     summary: '初始化分片上传',
+    //     description: '初始化分片上传任务，返回 fileId、uploadId 和每个分片的预签名 URL。',
+    // })
+    // initMultipart(@Body() dto: MultipartInitDto, @Req() req: Request) {
+    //     return this.fileService.initMultipartUpload(req.jwtClaim!.sub, dto);
+    // }
 
     // @Post('multipart/resume')
     // @ApiRoute({
@@ -178,25 +178,25 @@ export class FileController {
     //     return this.fileService.resumeMultipartUpload(dto);
     // }
 
-    @Post('multipart/complete')
-    @HttpCode(HttpStatus.NO_CONTENT)
-    @ApiRoute({
-        auth: 'required',
-        summary: '完成分片上传',
-        description: '在所有分片上传完成后，通知服务端合并分片，激活文件记录。',
-    })
-    completeMultipart(@Body() dto: CompleteMultipartDto): Promise<void> {
-        return this.fileService.completeMultipartUpload(dto);
-    }
+    // @Post('multipart/complete')
+    // @HttpCode(HttpStatus.NO_CONTENT)
+    // @ApiRoute({
+    //     auth: 'required',
+    //     summary: '完成分片上传',
+    //     description: '在所有分片上传完成后，通知服务端合并分片，激活文件记录。',
+    // })
+    // completeMultipart(@Body() dto: CompleteMultipartDto): Promise<void> {
+    //     return this.fileService.completeMultipartUpload(dto);
+    // }
 
-    @Delete('multipart/abort')
-    @HttpCode(HttpStatus.NO_CONTENT)
-    @ApiRoute({
-        auth: 'required',
-        summary: '取消分片上传',
-        description: '取消正在进行的分片上传任务，清理已上传的临时分片，软删除文件记录。',
-    })
-    abortMultipart(@Body() dto: AbortMultipartDto): Promise<void> {
-        return this.fileService.abortMultipartUpload(dto);
-    }
+    // @Delete('multipart/abort')
+    // @HttpCode(HttpStatus.NO_CONTENT)
+    // @ApiRoute({
+    //     auth: 'required',
+    //     summary: '取消分片上传',
+    //     description: '取消正在进行的分片上传任务，清理已上传的临时分片，软删除文件记录。',
+    // })
+    // abortMultipart(@Body() dto: AbortMultipartDto): Promise<void> {
+    //     return this.fileService.abortMultipartUpload(dto);
+    // }
 }

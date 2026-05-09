@@ -1,11 +1,12 @@
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod/v4';
+import { FileDomain } from '@root/prisma/generated/enums.js';
 
 // ─── 上传预签名（客户端直传） ───────────────────────────────────────────────────
 
 export const PresignUploadDtoSchema = z
     .object({
-        domain: z.string().meta({ title: '文件领域', example: 'image' }),
+        domain: z.enum(FileDomain).meta({ title: '文件领域', example: 'AVATAR' }),
         contentType: z
             .string()
             .meta({ title: '文件类型，必须是合法的MIME类型', example: 'image/png' }),
@@ -62,7 +63,7 @@ export class PresignDownloadDto extends createZodDto(PresignDownloadDtoSchema) {
 
 export const MultipartInitDtoSchema = z
     .object({
-        domain: z.string().meta({ title: '文件领域', example: 'video' }),
+        domain: z.enum(FileDomain).meta({ title: '文件领域', example: 'VIDEO' }),
         contentType: z
             .string()
             .meta({ title: '文件类型，必须是合法的MIME类型', example: 'video/mp4' }),
@@ -142,7 +143,7 @@ export class DeleteFilesDto extends createZodDto(DeleteFilesDtoSchema) {}
 export const CopyFileDtoSchema = z
     .object({
         fileId: z.string().min(1).meta({ title: '源文件记录 ID', example: 'cm8k...' }),
-        destDomain: z.string().meta({ title: '目标文件领域', example: 'image' }),
+        destDomain: z.enum(FileDomain).meta({ title: '目标文件领域', example: 'AVATAR' }),
         destFilename: z.string().optional().meta({ title: '目标文件名', example: 'final.jpg' }),
     })
     .meta({ description: '服务端复制文件的请求 Dto' });
@@ -151,7 +152,7 @@ export class CopyFileDto extends createZodDto(CopyFileDtoSchema) {}
 
 export const ServerUploadDtoSchema = z
     .object({
-        domain: z.string().meta({ title: '文件领域', example: 'image' }),
+        domain: z.enum(FileDomain).meta({ title: '文件领域', example: 'AVATAR' }),
         filename: z.string().meta({ title: '原始文件名', example: 'photo.jpg' }),
         file: z
             .file()

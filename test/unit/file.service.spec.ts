@@ -8,7 +8,7 @@ import {
     FileInvalidDomainException,
     FileInvalidTypeException,
     FileRecordNotFoundException,
-    FileStagingNotFoundException,
+    // FileStagingNotFoundException,
 } from '@/modules/file/file.exception.js';
 import type { StorageService } from '@/infra/storage/storage.service.js';
 import { Readable } from 'stream';
@@ -30,11 +30,11 @@ const mockStorageService: Mocked<
         | 'deleteObjects'
         | 'objectExists'
         | 'copyObject'
-        | 'promoteFromStaging'
-        | 'initMultipartUpload'
-        | 'getResumablePartUrls'
-        | 'completeMultipartUpload'
-        | 'abortMultipartUpload'
+        // | 'promoteFromStaging'
+        // | 'initMultipartUpload'
+        // | 'getResumablePartUrls'
+        // | 'completeMultipartUpload'
+        // | 'abortMultipartUpload'
     > & { stagingBucket: string }
 > = {
     getUploadUrl: vi.fn(),
@@ -49,11 +49,11 @@ const mockStorageService: Mocked<
     deleteObjects: vi.fn(),
     objectExists: vi.fn(),
     copyObject: vi.fn(),
-    promoteFromStaging: vi.fn(),
-    initMultipartUpload: vi.fn(),
-    getResumablePartUrls: vi.fn(),
-    completeMultipartUpload: vi.fn(),
-    abortMultipartUpload: vi.fn(),
+    // promoteFromStaging: vi.fn(),
+    // initMultipartUpload: vi.fn(),
+    // getResumablePartUrls: vi.fn(),
+    // completeMultipartUpload: vi.fn(),
+    // abortMultipartUpload: vi.fn(),
     stagingBucket: 'nestjs-scaffold-staging',
 };
 
@@ -222,40 +222,40 @@ describe('FileService', () => {
             expect(mockFileRepo.updateStatus).toHaveBeenCalledWith('file_1', 'ACTIVE');
         });
 
-        it('should promote from staging and activate for CAS flow', async () => {
-            const sha256 = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
-            const record = makeFileRecord({ status: 'PENDING', sha256 });
-            const activeRecord = makeFileRecord({ status: 'ACTIVE', sha256 });
-            mockFileRepo.findById.mockResolvedValue(record);
-            mockStorageService.objectExists.mockResolvedValue(true);
-            mockStorageService.promoteFromStaging.mockResolvedValue(undefined);
-            mockFileRepo.updateStatus.mockResolvedValue(activeRecord);
+        // it('should promote from staging and activate for CAS flow', async () => {
+        //     const sha256 = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
+        //     const record = makeFileRecord({ status: 'PENDING', sha256 });
+        //     const activeRecord = makeFileRecord({ status: 'ACTIVE', sha256 });
+        //     mockFileRepo.findById.mockResolvedValue(record);
+        //     mockStorageService.objectExists.mockResolvedValue(true);
+        //     mockStorageService.promoteFromStaging.mockResolvedValue(undefined);
+        //     mockFileRepo.updateStatus.mockResolvedValue(activeRecord);
+        //
+        //     const result = await service.confirmUpload({ fileId: 'file_1' } as any);
+        //
+        //     expect(mockStorageService.objectExists).toHaveBeenCalledWith(
+        //         'nestjs-scaffold-staging',
+        //         sha256
+        //     );
+        //     expect(mockStorageService.promoteFromStaging).toHaveBeenCalledWith(
+        //         sha256,
+        //         record.bucket,
+        //         record.key
+        //     );
+        //     expect(mockCacheManager.del).toHaveBeenCalledWith('cas:pending:file_1');
+        //     expect(result.status).toBe('ACTIVE');
+        // });
 
-            const result = await service.confirmUpload({ fileId: 'file_1' } as any);
-
-            expect(mockStorageService.objectExists).toHaveBeenCalledWith(
-                'nestjs-scaffold-staging',
-                sha256
-            );
-            expect(mockStorageService.promoteFromStaging).toHaveBeenCalledWith(
-                sha256,
-                record.bucket,
-                record.key
-            );
-            expect(mockCacheManager.del).toHaveBeenCalledWith('cas:pending:file_1');
-            expect(result.status).toBe('ACTIVE');
-        });
-
-        it('should throw FileStagingNotFoundException when staging object missing', async () => {
-            const sha256 = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
-            mockFileRepo.findById.mockResolvedValue(makeFileRecord({ sha256 }));
-            mockStorageService.objectExists.mockResolvedValue(false);
-
-            await expect(service.confirmUpload({ fileId: 'file_1' } as any)).rejects.toBeInstanceOf(
-                FileStagingNotFoundException
-            );
-            expect(mockStorageService.promoteFromStaging).not.toHaveBeenCalled();
-        });
+        // it('should throw FileStagingNotFoundException when staging object missing', async () => {
+        //     const sha256 = 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855';
+        //     mockFileRepo.findById.mockResolvedValue(makeFileRecord({ sha256 }));
+        //     mockStorageService.objectExists.mockResolvedValue(false);
+        //
+        //     await expect(service.confirmUpload({ fileId: 'file_1' } as any)).rejects.toBeInstanceOf(
+        //         FileStagingNotFoundException
+        //     );
+        //     expect(mockStorageService.promoteFromStaging).not.toHaveBeenCalled();
+        // });
 
         it('should throw FileRecordNotFoundException for unknown fileId', async () => {
             mockFileRepo.findById.mockResolvedValue(null);
@@ -463,134 +463,61 @@ describe('FileService', () => {
         });
     });
 
-    // ── initMultipartUpload ──────────────────────────────────────────────────
+    // ── initMultipartUpload (disabled) ──────────────────────────────────────
 
-    describe('initMultipartUpload', () => {
-        it('should initialize multipart upload and return fileId', async () => {
-            const storageResult = {
-                uploadId: 'upload_1',
-                partUrls: [{ partNumber: 1, url: 'https://s3.example.com/part1' }],
-            };
-            mockStorageService.initMultipartUpload.mockResolvedValue(storageResult);
-            mockFileRepo.create.mockResolvedValue(
-                makeFileRecord({ id: 'file_multi', uploadId: 'upload_1' })
-            );
+    // describe('initMultipartUpload', () => {
+    //     it('should initialize multipart upload and return fileId', async () => {
+    //         const storageResult = {
+    //             uploadId: 'upload_1',
+    //             partUrls: [{ partNumber: 1, url: 'https://s3.example.com/part1' }],
+    //         };
+    //         mockStorageService.initMultipartUpload.mockResolvedValue(storageResult);
+    //         mockFileRepo.create.mockResolvedValue(
+    //             makeFileRecord({ id: 'file_multi', uploadId: 'upload_1' })
+    //         );
+    //
+    //         const result = await service.initMultipartUpload('u_1', {
+    //             domain: 'video',
+    //             contentType: 'video/mp4',
+    //             filename: 'movie.mp4',
+    //             fileSize: 52428800,
+    //         } as any);
+    //
+    //         expect(result.fileId).toBe('file_multi');
+    //         expect(result.uploadId).toBe('upload_1');
+    //         expect(result.partUrls).toBe(storageResult.partUrls);
+    //         expect(mockFileRepo.create).toHaveBeenCalledWith(
+    //             expect.objectContaining({ uploadId: 'upload_1' })
+    //         );
+    //     });
+    //
+    //     it('should throw FileInvalidDomainException for invalid domain', async () => {
+    //         await expect(
+    //             service.initMultipartUpload('u_1', {
+    //                 domain: 'invalid',
+    //                 contentType: 'video/mp4',
+    //                 filename: 'movie.mp4',
+    //                 partCount: 2,
+    //             } as any)
+    //         ).rejects.toBeInstanceOf(FileInvalidDomainException);
+    //     });
+    // });
 
-            const result = await service.initMultipartUpload('u_1', {
-                domain: 'video',
-                contentType: 'video/mp4',
-                filename: 'movie.mp4',
-                fileSize: 52428800, // 50MB → partCount = 1 (50MB / 50MB per part)
-            } as any);
+    // ── resumeMultipartUpload (disabled) ────────────────────────────────────
 
-            expect(result.fileId).toBe('file_multi');
-            expect(result.uploadId).toBe('upload_1');
-            expect(result.partUrls).toBe(storageResult.partUrls);
-            expect(mockFileRepo.create).toHaveBeenCalledWith(
-                expect.objectContaining({ uploadId: 'upload_1' })
-            );
-        });
+    // describe('resumeMultipartUpload', () => {
+    //     it('should return resumable part URLs', async () => { ... });
+    // });
 
-        it('should throw FileInvalidDomainException for invalid domain', async () => {
-            await expect(
-                service.initMultipartUpload('u_1', {
-                    domain: 'invalid',
-                    contentType: 'video/mp4',
-                    filename: 'movie.mp4',
-                    partCount: 2,
-                } as any)
-            ).rejects.toBeInstanceOf(FileInvalidDomainException);
-        });
-    });
+    // ── completeMultipartUpload (disabled) ──────────────────────────────────
 
-    // ── resumeMultipartUpload ────────────────────────────────────────────────
+    // describe('completeMultipartUpload', () => {
+    //     it('should complete and activate file record', async () => { ... });
+    // });
 
-    describe('resumeMultipartUpload', () => {
-        it('should return resumable part URLs', async () => {
-            mockFileRepo.findById.mockResolvedValue(
-                makeFileRecord({
-                    domain: 'video',
-                    bucket: 'private',
-                    key: 'videos/u_1/123.mp4',
-                    uploadId: 'upload_1',
-                })
-            );
-            const mockResult = {
-                completedParts: [],
-                partUrls: [{ partNumber: 1, url: 'https://s3.example.com/part1' }],
-            };
-            mockStorageService.getResumablePartUrls.mockResolvedValue(mockResult);
+    // ── abortMultipartUpload (disabled) ─────────────────────────────────────
 
-            const result = await service.resumeMultipartUpload({
-                fileId: 'file_1',
-                totalParts: 1,
-                completedPartNumbers: [],
-                expiresIn: 3600,
-            } as any);
-
-            expect(result).toBe(mockResult);
-            expect(mockStorageService.getResumablePartUrls).toHaveBeenCalledWith(
-                'private',
-                'videos/u_1/123.mp4',
-                'upload_1',
-                1,
-                [],
-                3600
-            );
-        });
-    });
-
-    // ── completeMultipartUpload ──────────────────────────────────────────────
-
-    describe('completeMultipartUpload', () => {
-        it('should complete and activate file record', async () => {
-            mockFileRepo.findById.mockResolvedValue(
-                makeFileRecord({
-                    bucket: 'private',
-                    key: 'videos/u_1/123.mp4',
-                    uploadId: 'upload_1',
-                })
-            );
-            mockStorageService.completeMultipartUpload.mockResolvedValue(undefined);
-            mockFileRepo.updateStatus.mockResolvedValue(makeFileRecord({ status: 'ACTIVE' }));
-
-            await service.completeMultipartUpload({
-                fileId: 'file_1',
-                parts: [{ PartNumber: 1, ETag: '"etag1"' }],
-            } as any);
-
-            expect(mockStorageService.completeMultipartUpload).toHaveBeenCalledWith(
-                'private',
-                'videos/u_1/123.mp4',
-                'upload_1',
-                [{ PartNumber: 1, ETag: '"etag1"' }]
-            );
-            expect(mockFileRepo.updateStatus).toHaveBeenCalledWith('file_1', 'ACTIVE', null);
-        });
-    });
-
-    // ── abortMultipartUpload ─────────────────────────────────────────────────
-
-    describe('abortMultipartUpload', () => {
-        it('should abort multipart upload and soft delete record', async () => {
-            mockFileRepo.findById.mockResolvedValue(
-                makeFileRecord({
-                    bucket: 'private',
-                    key: 'videos/u_1/123.mp4',
-                    uploadId: 'upload_1',
-                })
-            );
-            mockStorageService.abortMultipartUpload.mockResolvedValue(undefined);
-            mockFileRepo.softDelete.mockResolvedValue(makeFileRecord({ status: 'DELETED' }));
-
-            await service.abortMultipartUpload({ fileId: 'file_1' } as any);
-
-            expect(mockStorageService.abortMultipartUpload).toHaveBeenCalledWith(
-                'private',
-                'videos/u_1/123.mp4',
-                'upload_1'
-            );
-            expect(mockFileRepo.softDelete).toHaveBeenCalledWith('file_1');
-        });
-    });
+    // describe('abortMultipartUpload', () => {
+    //     it('should abort multipart upload and soft delete record', async () => { ... });
+    // });
 });
