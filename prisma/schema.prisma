@@ -9,16 +9,92 @@ datasource db {
 }
 
 model User {
-  id           String   @id @default(ulid())
-  username     String   @unique
-  email        String   @unique
+  id           String     @id @default(uuid(7))
+  username     String     @unique
+  email        String     @unique
+  phone        String?    @unique
   passwordHash String
-  nickname     String?
-  realname     String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  role         UserRole   @default(USER_DEFAULT)
+  status       UserStatus @default(ACTIVE)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  bannedUntil  DateTime?
+  bannedReason String?
 
-  @@index(createdAt)
+  profile       UserProfile?
+  statusHistory UserStatusHistory[]
+  files         File[]
+}
+
+enum UserRole {
+  ADMIN
+  USER_DEFAULT
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  BANNED
+}
+
+model UserProfile {
+  userId      String          @id
+  nickname    String?
+  avatarId    String?
+  bio         String?
+  sex         UserProfileSex?
+  sexVisible  Boolean         @default(true)
+  birthday    DateTime?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  user   User  @relation(fields: [userId], references: [id])
+  avatar File? @relation(fields: [avatarId], references: [id])
+}
+
+enum UserProfileSex {
+  MALE
+  FEMALE
+  OTHER // wtf???
+}
+
+model UserStatusHistory {
+  id           String                        @id @default(uuid(7))
+  userId       String
+  operatorType UserStatusOperatorType
+  operatorId   String?
+  fromStatus   UserStatus
+  toStatus     UserStatus
+  remark       String?
+  createdAt    DateTime                      @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+}
+
+enum UserStatusOperatorType {
+  SYSTEM
+  MANUAL
+}
+
+model File {
+  id          String         @id @default(uuid(7))
+  userId      String
+  domain      FileDomain
+  visibility  FileVisibility
+  bucket      String
+  key         String
+  filename    String
+  contentType String
+  status      FileStatus     @default(PENDING)
+  createdAt   DateTime       @default(now())
+
+  user          User         @relation(fields: [userId], references: [id])
+  profileAvatar UserProfile[]
+
+  @@index([userId])
+  @@index([status, createdAt])
 }
 
 enum FileStatus {
@@ -27,21 +103,13 @@ enum FileStatus {
   DELETED
 }
 
-model File {
-  id          String     @id @default(uuid(7))
-  userId      String
-  domain      String
-  bucket      String
-  key         String
-  filename    String
-  contentType String
-  status      FileStatus @default(PENDING)
-  uploadId    String?
-  sha256      String?
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
+enum FileDomain {
+  AVATAR
+  DOCUMENT
+  VIDEO
+}
 
-  @@index([userId])
-  @@index([status])
-  @@index([sha256])
+enum FileVisibility {
+  PUBLIC
+  PRIVATE
 }
