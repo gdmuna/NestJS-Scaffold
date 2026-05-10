@@ -35,6 +35,12 @@ async function _seedForDevelopment() {
                         username: `user${i}`,
                         email: `user${i}@example.com`,
                         passwordHash: passwordHashes[i].hash,
+                        role: 'ADMIN',
+                        profile: {
+                            create: {
+                                nickname: `系统管理员${i}`,
+                            },
+                        },
                     },
                 })
                 .then((user) => {
