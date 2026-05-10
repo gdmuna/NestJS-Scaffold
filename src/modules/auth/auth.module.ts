@@ -1,4 +1,4 @@
-import { AuthGuard } from './auth.guard.js';
+import { AuthGuard, RolesGuard } from './auth.guard.js';
 import { AuthController } from './auth.controller.js';
 import { AuthService, TokenService } from './services/index.js';
 
@@ -11,6 +11,10 @@ import { APP_GUARD } from '@nestjs/core';
         {
             provide: APP_GUARD,
             useClass: AuthGuard,
+        },
+        {
+            provide: APP_GUARD,
+            useClass: RolesGuard,
         },
         AuthService,
         TokenService,

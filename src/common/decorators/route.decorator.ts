@@ -9,6 +9,8 @@ import { toKebabCase } from '@/common/utils/index.js';
 
 import { APP_VERSION, ERROR_REFERENCE_URL } from '@/constants/index.js';
 
+import { UserRole } from '@root/prisma/generated/enums.js';
+
 import { applyDecorators, Type } from '@nestjs/common';
 import { SetMetadata } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiConsumes } from '@nestjs/swagger';
@@ -20,12 +22,17 @@ export const AUTH_STRATEGY_KEY = 'auth:strategy';
 /** 认证策略类型枚举 */
 export type AUTH_STRATEGY_TYPE = 'public' | 'optional' | 'required';
 
+/** 角色权限的元数据键，供 AuthGuard 读取 */
+export const AUTH_ROLES_KEY = 'auth:roles';
+
+export type AUTH_ROLES_TYPE = UserRole[] | null;
+
 /**
  * 路由错误码声明列表的元数据键。
  * 当前由 `buildErrorApiResponses` 在装饰器阶段内联生成 ApiResponse，
  * `enrichErrorResponses` 文档后处理阶段补充 schema 定义。
  */
-export const ROUTE_ERRORS_KEY = 'route:errors';
+// export const ROUTE_ERRORS_KEY = 'route:errors';
 
 /**
  * 所有路由自动追加的错误码。
@@ -40,6 +47,8 @@ const BASE_ERROR_CODES = [
 export interface ApiRouteOptions {
     /** 认证策略（默认 'required'） */
     auth: AUTH_STRATEGY_TYPE;
+
+    roles?: AUTH_ROLES_TYPE;
 
     /** Swagger 操作摘要（必填），显示在端点标题 */
     summary: string;
@@ -101,6 +110,7 @@ export interface ApiRouteOptions {
  */
 export const ApiRoute = (options: ApiRouteOptions) => {
     const auth = options.auth ?? 'required';
+    const roles = options.roles;
     //prettier-ignore
     const EXTERNAL_ERROR_CODES =
         auth === 'required'
@@ -121,22 +131,24 @@ export const ApiRoute = (options: ApiRouteOptions) => {
     return applyDecorators(
         // 1. 认证元数据
         SetMetadata(AUTH_STRATEGY_KEY, auth),
-        // 2. 错误码元数据（供调试 / 运行时反射读取）
-        SetMetadata(ROUTE_ERRORS_KEY, allErrorCodes),
-        // 3. Swagger 操作说明
+        // 2. 角色元数据（供 RolesGuard 读取）
+        SetMetadata(AUTH_ROLES_KEY, roles),
+        // 3. 错误码元数据（供调试 / 运行时反射读取）
+        // SetMetadata(ROUTE_ERRORS_KEY, allErrorCodes),
+        // 4. Swagger 操作说明
         ApiOperation({
             summary: options.summary,
             description: options.description,
             deprecated: options.deprecated,
         }),
         ApiConsumes(...allowedContentTypes),
-        // 4. 成功响应包络（有 responseType 时展开）
+        // 5. 成功响应包络（有 responseType 时展开）
         ...(options.responseType
             ? [buildSuccessApiResponse(options.responseType, options.successStatus ?? 200)]
             : []),
-        // 5. 错误响应（按 statusCode 分组，从 ErrorRegistry 查询）
+        // 6. 错误响应（按 statusCode 分组，从 ErrorRegistry 查询）
         ...buildErrorApiResponses(allErrorCodes),
-        // 6. Bearer 认证标识（非公开路由）
+        // 7. Bearer 认证标识（非公开路由）
         ...(auth !== 'public' ? [ApiBearerAuth('accessToken')] : [])
     );
 };

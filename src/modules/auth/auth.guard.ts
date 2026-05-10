@@ -1,6 +1,11 @@
 import { TokenService } from './services/index.js';
 
-import { AUTH_STRATEGY_KEY, AUTH_STRATEGY_TYPE } from '@/common/decorators/index.js';
+import {
+    AUTH_STRATEGY_KEY,
+    AUTH_STRATEGY_TYPE,
+    AUTH_ROLES_KEY,
+    AUTH_ROLES_TYPE,
+} from '@/common/decorators/index.js';
 import { extractAccessTokenFromRequest } from '@/common/utils/index.js';
 import { InvalidTokenException, MissingTokenException } from './auth.exception.js';
 
@@ -48,5 +53,38 @@ export class AuthGuard implements CanActivate {
 
         request.jwtClaim = claim;
         return true;
+    }
+}
+
+@Injectable()
+export class RolesGuard implements CanActivate {
+    constructor(private readonly reflector: Reflector) {}
+
+    canActivate(context: ExecutionContext) {
+        const request = context.switchToHttp().getRequest<Request>();
+
+        const requiredRoles = this.reflector.getAllAndOverride<AUTH_ROLES_TYPE>(AUTH_ROLES_KEY, [
+            context.getHandler(),
+            context.getClass(),
+        ]);
+
+        if (!requiredRoles || requiredRoles.length === 0) {
+            return true;
+        }
+
+        const authStrategy = this.reflector.getAllAndOverride<AUTH_STRATEGY_TYPE>(
+            AUTH_STRATEGY_KEY,
+            [context.getHandler(), context.getClass()]
+        );
+
+        if (authStrategy === 'public' || authStrategy === 'optional') {
+            return true;
+        }
+
+        const userRoles = request.jwtClaim?.user.role;
+
+        if (!userRoles) return false;
+
+        return requiredRoles.some((role) => userRoles.includes(role));
     }
 }
