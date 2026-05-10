@@ -6,7 +6,7 @@ import {
     // FileStagingNotFoundException,
 } from './file.exception.js';
 import { PROXY_SIZE_THRESHOLD } from './file.constant.js';
-import type { FileDomain, UploadStrategy } from './file.interface.js';
+import type { UploadStrategy } from './file.interface.js';
 import {
     PresignUploadDto,
     // MultipartInitDto,
@@ -27,9 +27,10 @@ import type {
 } from '@/infra/storage/storage.service.js';
 
 import type { FileModel } from '@root/prisma/generated/models/File.js';
-import { FileVisibility } from '@root/prisma/generated/enums.js';
+import { FileDomain, FileVisibility } from '@root/prisma/generated/enums.js';
 
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Cache } from '@nestjs/cache-manager';
 import type { Readable } from 'stream';
 
@@ -41,14 +42,15 @@ export class FileService {
         private readonly storageService: StorageService,
         private readonly fileRepo: FileRepository,
         private readonly cacheManager: Cache,
+        private readonly configService: ConfigService,
         private readonly documentStrategy: DocumentStrategy,
         private readonly imageStrategy: ImageStrategy,
         private readonly videoStrategy: VideoStrategy
     ) {
         this.strategies = {
-            image: this.imageStrategy,
-            document: this.documentStrategy,
-            video: this.videoStrategy,
+            AVATAR: this.imageStrategy,
+            DOCUMENT: this.documentStrategy,
+            VIDEO: this.videoStrategy,
         };
     }
 
@@ -361,8 +363,8 @@ export class FileService {
 
     // ─── 内部工具 ──────────────────────────────────────────────────────────────
 
-    private resolveStrategy(domain: string): UploadStrategy {
-        const strategy = this.strategies[domain as FileDomain];
+    private resolveStrategy(domain: FileDomain): UploadStrategy {
+        const strategy = this.strategies[domain];
         if (!strategy) {
             throw new FileInvalidDomainException({
                 message: `不支持的文件领域: ${domain}，支持：${Object.keys(this.strategies).join(', ')}`,

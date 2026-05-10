@@ -8,6 +8,6 @@ import { Module } from '@nestjs/common';
 @Module({
     controllers: [FileController],
     providers: [FileService, FileRepository, DocumentStrategy, ImageStrategy, VideoStrategy],
-    exports: [FileService],
+    exports: [FileService, FileRepository],
 })
 export class FileModule {}

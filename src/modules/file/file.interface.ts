@@ -1,5 +1,3 @@
-export type FileDomain = 'document' | 'image' | 'video';
-
 export interface UploadStrategy {
     validate(dto: any): void; // 各领域自己的校验逻辑
     resolveKey(userId: string, filename: string): string; // 生成存储key的逻辑
