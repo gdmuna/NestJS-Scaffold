@@ -68,6 +68,7 @@ export class AuthService {
                 username,
                 email,
                 passwordHash,
+                profile: { create: {} },
             },
         });
 
