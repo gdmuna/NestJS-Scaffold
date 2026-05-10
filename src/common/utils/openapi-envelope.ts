@@ -216,7 +216,7 @@ const TAG_DESCRIPTIONS: Record<string, string> = {
         '**刷新令牌**：以 HttpOnly Cookie（`refresh_token`）形式存储，通过',
         '`POST /auth/refresh-token` 静默轮转，无需手动传递刷新令牌值。',
     ].join('\n'),
-    错误目录: [
+    错误目录模块: [
         '以 API 方式查询系统中所有通过 `@RegisterException` 注册的错误码及其元数据。',
         '',
         '完整的离线对照表见「**错误码参考**」标签页。',

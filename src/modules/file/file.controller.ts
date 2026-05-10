@@ -32,10 +32,12 @@ import {
     UploadedFile,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiTags } from '@nestjs/swagger';
 
 import type { Request, Response } from 'express';
 
 @Controller('files')
+@ApiTags('文件模块')
 export class FileController {
     constructor(private readonly fileService: FileService) {}
 

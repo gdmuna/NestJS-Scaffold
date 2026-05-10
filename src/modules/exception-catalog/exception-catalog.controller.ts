@@ -7,7 +7,7 @@ import { Controller, Get, Param } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 
 @Controller('errors')
-@ApiTags('错误目录')
+@ApiTags('错误目录模块')
 export class ExceptionCatalogController {
     constructor(private readonly exceptionCatalogService: ExceptionCatalogService) {}
 
