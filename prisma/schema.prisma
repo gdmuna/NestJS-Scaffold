@@ -9,7 +9,7 @@ datasource db {
 }
 
 model User {
-  id           String     @id @default(uuid(7))
+  id           String     @id @default(uuid(7)) @db.Uuid
   username     String     @unique
   email        String     @unique
   phone        String?    @unique
@@ -38,15 +38,15 @@ enum UserStatus {
 }
 
 model UserProfile {
-  userId      String          @id
-  nickname    String?
-  avatarId    String?
-  bio         String?
-  sex         UserProfileSex?
-  sexVisible  Boolean         @default(true)
-  birthday    DateTime?
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
+  userId     String          @id @default(uuid(7)) @db.Uuid
+  nickname   String?
+  avatarId   String?         @db.Uuid
+  bio        String?
+  sex        UserProfileSex?
+  sexVisible Boolean         @default(true)
+  birthday   DateTime?
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
 
   user   User  @relation(fields: [userId], references: [id])
   avatar File? @relation(fields: [avatarId], references: [id])
@@ -59,14 +59,14 @@ enum UserProfileSex {
 }
 
 model UserStatusHistory {
-  id           String                        @id @default(uuid(7))
-  userId       String
+  id           String                 @id @default(uuid(7)) @db.Uuid
+  userId       String                 @db.Uuid
   operatorType UserStatusOperatorType
   operatorId   String?
   fromStatus   UserStatus
   toStatus     UserStatus
   remark       String?
-  createdAt    DateTime                      @default(now())
+  createdAt    DateTime               @default(now())
 
   user User @relation(fields: [userId], references: [id])
 
@@ -79,8 +79,8 @@ enum UserStatusOperatorType {
 }
 
 model File {
-  id          String         @id @default(uuid(7))
-  userId      String
+  id          String         @id @default(uuid(7)) @db.Uuid
+  userId      String         @db.Uuid
   domain      FileDomain
   visibility  FileVisibility
   bucket      String
@@ -90,7 +90,7 @@ model File {
   status      FileStatus     @default(PENDING)
   createdAt   DateTime       @default(now())
 
-  user          User         @relation(fields: [userId], references: [id])
+  user          User          @relation(fields: [userId], references: [id])
   profileAvatar UserProfile[]
 
   @@index([userId])

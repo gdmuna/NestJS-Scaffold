@@ -6,6 +6,8 @@ import { AlsService } from '@/infra/als/als.service.js';
 
 import { PrismaClient } from '@root/prisma/generated/client.js';
 
+import { Prisma } from '@root/prisma/generated/client.js';
+
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaPg } from '@prisma/adapter-pg';
@@ -44,6 +46,9 @@ export class DatabaseService extends PrismaClient implements OnModuleDestroy, On
                 { emit: 'event', level: 'error' },
                 { emit: 'event', level: 'warn' },
             ],
+            transactionOptions: {
+                isolationLevel: Prisma.TransactionIsolationLevel.ReadCommitted,
+            },
         });
     }
 
